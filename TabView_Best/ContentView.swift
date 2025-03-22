@@ -1,6 +1,21 @@
 import SwiftUI
 
-// MARK: - SheetType
+//ContentView
+//└── MainTabView
+//    └── TabContainerView
+//        └── ViewWrapper
+//            └── TabContent
+//                └── TabRow
+//                    └── SubItemRow
+
+// MARK: - Models
+struct TabConfig: Equatable {
+    let id: String
+    let title: String
+    let content: String
+    let icon: String
+}
+
 enum SheetType: Identifiable, Equatable {
     case profile
     case settings
@@ -83,10 +98,12 @@ struct TabRow: View, Equatable {
         print("🔄 TabRow[\(id)] refreshed")
         
         return VStack(alignment: .leading, spacing: 12) {
+            Text(UUID().uuidString)
+                .foregroundStyle(Color.accentColor)
+            
             Text(title)
                 .font(.headline)
             
-            // 子项目
             ForEach(0..<2) { index in
                 SubItemRow(
                     id: "\(id)_sub_\(index)",
@@ -110,27 +127,12 @@ struct TabRow: View, Equatable {
     }
 }
 
-// MARK: - SectionHeader
-struct SectionHeader: View, Equatable {
-    let title: String
-    
-    static func == (lhs: SectionHeader, rhs: SectionHeader) -> Bool {
-        lhs.title == rhs.title
-    }
-    
-    var body: some View {
-        Text(title)
-            .font(.headline)
-            .foregroundColor(.secondary)
-    }
-}
-
 // MARK: - TabContent
 struct TabContent: View, Equatable {
     let id: String
     let title: String
     let complexContent: String
-    @EnvironmentObject private var sheetManager: SheetObject
+    let onShowSheet: (String) -> Void  // 使用回调替代环境对象
     
     static func == (lhs: TabContent, rhs: TabContent) -> Bool {
         lhs.id == rhs.id &&
@@ -143,6 +145,9 @@ struct TabContent: View, Equatable {
         
         return List {
             Section {
+                Text(UUID().uuidString)
+                    .foregroundStyle(Color.accentColor)
+                
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Tab ID: \(id)")
                         .font(.subheadline)
@@ -163,15 +168,10 @@ struct TabContent: View, Equatable {
                     TabRow(
                         id: "\(index)",
                         title: "Row \(index)",
-                        onShowSheet: { rowId in
-                            sheetManager.showSheet(.detail(rowId))
-                        }
+                        onShowSheet: onShowSheet
                     )
                     .equatable()
                 }
-            } header: {
-                SectionHeader(title: "Items")
-                    .equatable()
             }
         }
         .listStyle(.insetGrouped)
@@ -208,51 +208,89 @@ struct SheetView: View {
     }
 }
 
+// MARK: - TabContainerView
+struct TabContainerView: View, Equatable {
+    let tab: TabConfig
+    let onShowSheet: (String) -> Void
+    
+    static func == (lhs: TabContainerView, rhs: TabContainerView) -> Bool {
+        lhs.tab == rhs.tab
+    }
+    
+    var body: some View {
+        print("🔄 TabContainerView[\(tab.id)] refreshed")
+        
+        return ViewWrapper(id: "Tab\(tab.id)") {
+            TabContent(
+                id: tab.id,
+                title: tab.title,
+                complexContent: tab.content,
+                onShowSheet: onShowSheet
+            )
+        }
+    }
+}
+
+// MARK: - MainTabView
+struct MainTabView: View {
+    let tabs: [TabConfig]
+    let onShowSheet: (String) -> Void
+    
+    var body: some View {
+        print("🔄 MainTabView refreshed")
+        
+        return TabView {
+            ForEach(tabs, id: \.id) { tab in
+                TabContainerView(
+                    tab: tab,
+                    onShowSheet: onShowSheet
+                )
+                .equatable()
+                .tabItem {
+                    Label(tab.title, systemImage: tab.icon)
+                }
+            }
+        }
+    }
+}
+
 // MARK: - ContentView
 struct ContentView: View {
     @StateObject private var sheetManager = SheetObject()
     
+    private let tabs = [
+        TabConfig(
+            id: "1",
+            title: "First Tab",
+            content: "This is the first tab with some complex content.",
+            icon: "1.circle"
+        ),
+        TabConfig(
+            id: "2",
+            title: "Second Tab",
+            content: "Second tab content showing optimized updates.",
+            icon: "2.circle"
+        ),
+        TabConfig(
+            id: "3",
+            title: "Third Tab",
+            content: "Third tab demonstrating performance benefits.",
+            icon: "3.circle"
+        )
+    ]
+    
     var body: some View {
         print("🔄 ContentView refreshed")
         
-        return TabView {
-            ViewWrapper(id: "Tab1") {
-                TabContent(
-                    id: "1",
-                    title: "First Tab",
-                    complexContent: "This is the first tab with some complex content that demonstrates the performance optimization."
-                )
+        return MainTabView(
+            tabs: tabs,
+            onShowSheet: { id in
+                sheetManager.showSheet(.detail(id))
             }
-            .tabItem {
-                Label("Tab 1", systemImage: "1.circle")
-            }
-            
-            ViewWrapper(id: "Tab2") {
-                TabContent(
-                    id: "2",
-                    title: "Second Tab",
-                    complexContent: "Second tab content showing how updates are isolated and optimized."
-                )
-            }
-            .tabItem {
-                Label("Tab 2", systemImage: "2.circle")
-            }
-            
-            ViewWrapper(id: "Tab3") {
-                TabContent(
-                    id: "3",
-                    title: "Third Tab",
-                    complexContent: "Third tab demonstrating the performance benefits of proper Equatable implementations."
-                )
-            }
-            .tabItem {
-                Label("Tab 3", systemImage: "3.circle")
-            }
-        }
+        )
         .sheet(item: $sheetManager.activeSheet) { type in
             SheetView(type: type)
         }
-        .environmentObject(sheetManager)
     }
 }
 
