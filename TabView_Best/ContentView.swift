@@ -72,7 +72,9 @@ struct SubItemRow: View, Equatable {
     
     var body: some View {
         print("🔄 SubItemRow[\(id)] refreshed")
-        
+#if DEBUG
+let _ = Self._printChanges()
+#endif
         return Button {
             onTap(id)
         } label: {
@@ -96,7 +98,9 @@ struct TabRow: View, Equatable {
     
     var body: some View {
         print("🔄 TabRow[\(id)] refreshed")
-        
+#if DEBUG
+let _ = Self._printChanges()
+#endif
         return VStack(alignment: .leading, spacing: 12) {
             Text(UUID().uuidString)
                 .foregroundStyle(Color.accentColor)
@@ -142,7 +146,9 @@ struct TabContent: View, Equatable {
     
     var body: some View {
         print("🔄 TabContent[\(id)] refreshed")
-        
+#if DEBUG
+let _ = Self._printChanges()
+#endif
         return List {
             Section {
                 Text(UUID().uuidString)
@@ -184,6 +190,9 @@ struct SheetView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
+#if DEBUG
+let _ = Self._printChanges()
+#endif
         NavigationView {
             VStack(spacing: 20) {
                 Text("Content for: \(type.id)")
@@ -238,7 +247,9 @@ struct MainTabView: View {
     
     var body: some View {
         print("🔄 MainTabView refreshed")
-        
+#if DEBUG
+let _ = Self._printChanges()
+#endif
         return TabView {
             ForEach(tabs, id: \.id) { tab in
                 TabContainerView(
@@ -281,7 +292,9 @@ struct ContentView: View {
     
     var body: some View {
         print("🔄 ContentView refreshed")
-        
+#if DEBUG
+let _ = Self._printChanges()
+#endif
         return MainTabView(
             tabs: tabs,
             onShowSheet: { id in
