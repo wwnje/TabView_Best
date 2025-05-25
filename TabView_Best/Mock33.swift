@@ -54,40 +54,52 @@ class Mock33_VM: ObservableObject {
     }
 }
 
+// MARK: - 包装器视图，使用 Equatable
+struct MockPageContainer: View, Equatable {
+    let tab: C_Tab
+    let page_data: Page_Data?
+    let onClickToFirst: () -> ()
+    let onShowSheet: (ClickType) -> Void
+    
+    static func == (lhs: MockPageContainer, rhs: MockPageContainer) -> Bool {
+        lhs.tab == rhs.tab && lhs.page_data?.id == rhs.page_data?.id
+    }
+    
+    var body: some View {
+#if DEBUG
+let _ = Self._printChanges()
+#endif
+        return MockPage(
+            tab: tab,
+            page_data: page_data,
+            onClickToFirst: onClickToFirst,
+            onClick: onShowSheet
+        )
+    }
+}
+
 struct Mock33: View {
     @StateObject var vm = Mock33_VM()
     @State private var selectTabId: String = ""
-    @State private var activeSheet: ClickType?
+    @State private var activeSheet: ClickType? // 直接使用 @State
 
     var body: some View {
 #if DEBUG
 let _ = Self._printChanges()
 #endif
-        TabView(selection: $selectTabId) {
+        return TabView(selection: $selectTabId) {
             ForEach(vm.pages) { page in
-                MockPage(
+                MockPageContainer(
                     tab: page,
                     page_data: vm.page_data_dic[page.id],
                     onClickToFirst: {
                         selectTabId = vm.pages.first?.id ?? ""
                     },
-                    onClick: { click_type in
-                        switch click_type {
-                        case .profile(let clickParams):
-                            activeSheet = click_type
-                        case .settings(let clickParams):
-                            activeSheet = click_type
-                        case .detail(let clickParams):
-                            activeSheet = click_type
-                        case .edit_note(let c_Note):
-                            if let c_Note = c_Note {
-                                activeSheet = click_type
-                            } else {
-                                vm.page_data_dic[page.id]?.notes.append(C_Note(name: "New Note"))
-                            }
-                        }
+                    onShowSheet: { clickType in
+                        handleClick(clickType, for: page)
                     }
                 )
+                .equatable() // 关键：使用 equatable 修饰符
                 .tag(page.id)
             }
         }
@@ -112,6 +124,23 @@ let _ = Self._printChanges()
         }
     }
     
+    private func handleClick(_ clickType: ClickType, for page: C_Tab) {
+        switch clickType {
+        case .profile(let clickParams):
+            activeSheet = clickType
+        case .settings(let clickParams):
+            activeSheet = clickType
+        case .detail(let clickParams):
+            activeSheet = clickType
+        case .edit_note(let c_Note):
+            if let c_Note = c_Note {
+                activeSheet = clickType
+            } else {
+                vm.page_data_dic[page.id]?.notes.append(C_Note(name: "New Note"))
+            }
+        }
+    }
+    
     @ViewBuilder
     private func presentSheet(_ type: ClickType) -> some View {
         switch type {
@@ -127,29 +156,23 @@ let _ = Self._printChanges()
     }
 }
 
-struct MockPage_Row: View {
-    var note: C_Note
-    
-    var body: some View{
-        HStack {
-            Text(UUID().uuidString)
-            Text(note.name)
-        }
-    }
-}
-
-struct MockPage: View {
+// MARK: - 优化 MockPage，使其支持 Equatable
+struct MockPage: View, Equatable {
     var tab: C_Tab
     var page_data: Page_Data?
     
     var onClickToFirst: () -> ()
     let onClick: (ClickType) -> Void
+    
+    static func == (lhs: MockPage, rhs: MockPage) -> Bool {
+        lhs.tab == rhs.tab && lhs.page_data?.id == rhs.page_data?.id
+    }
 
     var body: some View{
 #if DEBUG
 let _ = Self._printChanges()
 #endif
-        List {
+        return List {
             Section {
                 Text(tab.name)
                     .font(.title)
@@ -185,6 +208,27 @@ let _ = Self._printChanges()
     }
 }
 
+// MARK: - 优化 MockPage_Row
+struct MockPage_Row: View, Equatable {
+    var note: C_Note
+    @State private var rowUUID = UUID() // 使用 @State 保持 UUID 稳定
+    
+    static func == (lhs: MockPage_Row, rhs: MockPage_Row) -> Bool {
+        lhs.note.id == rhs.note.id && lhs.note.name == rhs.note.name
+    }
+    
+    var body: some View{
+#if DEBUG
+let _ = Self._printChanges()
+#endif
+        return HStack {
+            Text(rowUUID.uuidString) // 使用稳定的 UUID
+            Text(note.name)
+        }
+    }
+}
+
+// MARK: - 其余代码保持不变
 struct ClickParams {
     let id: String
     var title: String?
