@@ -56,10 +56,8 @@ class Mock33_VM: ObservableObject {
 
 struct Mock33: View {
     @StateObject var vm = Mock33_VM()
-    @State private var openSheet: Bool = false
     @State private var selectTabId: String = ""
-    
-    @StateObject private var sheetManager = ClickObject()
+    @State private var activeSheet: ClickType?
 
     var body: some View {
 #if DEBUG
@@ -67,29 +65,30 @@ let _ = Self._printChanges()
 #endif
         TabView(selection: $selectTabId) {
             ForEach(vm.pages) { page in
-                MockPage(tab: page, page_data: vm.page_data_dic[page.id], onClickToFirst: {
-                    selectTabId = vm.pages.first?.id ?? ""
-                }, openSheet: {
-                    openSheet = true
-                }, onClick: {click_type in
-                    switch click_type {
-                    case .profile(let clickParams):
-                        break
-                    case .settings(let clickParams):
-                        break
-                    case .detail(let clickParams):
-                        break
-                    case .edit_note(let c_Note):
-                        if let c_Note = c_Note{
-//                            openSheet = true
-                            sheetManager.showSheet(click_type)
-                        }
-                        else{
-                            vm.page_data_dic[page.id]?.notes.append(C_Note(name: "New Note"))
+                MockPage(
+                    tab: page,
+                    page_data: vm.page_data_dic[page.id],
+                    onClickToFirst: {
+                        selectTabId = vm.pages.first?.id ?? ""
+                    },
+                    onClick: { click_type in
+                        switch click_type {
+                        case .profile(let clickParams):
+                            activeSheet = click_type
+                        case .settings(let clickParams):
+                            activeSheet = click_type
+                        case .detail(let clickParams):
+                            activeSheet = click_type
+                        case .edit_note(let c_Note):
+                            if let c_Note = c_Note {
+                                activeSheet = click_type
+                            } else {
+                                vm.page_data_dic[page.id]?.notes.append(C_Note(name: "New Note"))
+                            }
                         }
                     }
-                })
-                .tag(page.id)  // 直接使用 page.id，不需要 .uuidString
+                )
+                .tag(page.id)
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .always))
@@ -97,20 +96,17 @@ let _ = Self._printChanges()
             // 设置默认选中的 tab
             selectTabId = vm.pages.first?.id ?? ""
         })
-        .sheet(isPresented: $openSheet) {
-            Text("This is sheet")
-        }
         // sheet展示
         .sheet(item: Binding(
-            get: { sheetManager.activeSheet?.presentationStyle == .sheet ? sheetManager.activeSheet : nil },
-            set: { sheetManager.activeSheet = $0 }
+            get: { activeSheet?.presentationStyle == .sheet ? activeSheet : nil },
+            set: { activeSheet = $0 }
         )) { type in
             presentSheet(type)
         }
         // 全屏展示
         .fullScreenCover(item: Binding(
-            get: { sheetManager.activeSheet?.presentationStyle == .fullScreen ? sheetManager.activeSheet : nil },
-            set: { sheetManager.activeSheet = $0 }
+            get: { activeSheet?.presentationStyle == .fullScreen ? activeSheet : nil },
+            set: { activeSheet = $0 }
         )) { type in
             presentSheet(type)
         }
@@ -136,7 +132,6 @@ struct MockPage: View {
     var page_data: Page_Data?
     
     var onClickToFirst: () -> ()
-    var openSheet: () -> ()
     let onClick: (ClickType) -> Void
 
     var body: some View{
@@ -174,12 +169,6 @@ let _ = Self._printChanges()
                 onClickToFirst()
             } label: {
                 Text("back to first")
-            }
-            
-            Button {
-                openSheet()
-            } label: {
-                Text("open sheet")
             }
         }
     }
@@ -219,7 +208,7 @@ enum ClickType: Identifiable, Equatable {
         case .profile(let params): return "profile_\(params.id)"
         case .settings(let params): return "settings_\(params.id)"
         case .detail(let params): return "detail_\(params.id)"
-        case .edit_note(let params): return "edit_note_\(params?.id)"
+        case .edit_note(let params): return "edit_note_\(params?.id.uuidString ?? "new")"
         }
     }
     
@@ -237,14 +226,10 @@ enum ClickType: Identifiable, Equatable {
     }
 }
 
-// MARK: - ClickObject
-final class ClickObject: ObservableObject {
-    @Published var activeSheet: ClickType?
-    
-    func showSheet(_ type: ClickType) {
-        print("📤 Showing sheet: \(type.id)")
-        activeSheet = type
-    }
+// 添加 PresentationStyle 枚举
+enum PresentationStyle {
+    case sheet
+    case fullScreen
 }
 
 // MARK: - ClickView
@@ -256,24 +241,42 @@ struct ClickView: View {
 #if DEBUG
         let _ = Self._printChanges()
 #endif
-        let params = extractParams(from: type)
         NavigationView {
-            VStack {
-                if let params = params{
+            VStack(spacing: 20) {
+                switch type {
+                case .profile(let params):
+                    Text("Profile View")
+                        .font(.title)
                     Text("ID: \(params.id)")
                     if let title = params.title {
                         Text("Title: \(title)")
                     }
-                    if let data = params.data {
-                        Text("Data: \(String(describing: data))")
-                    }
-                    // 使用extraParams
-                    ForEach(Array(params.extraParams.keys), id: \.self) { key in
-                        Text("\(key): \(String(describing: params.extraParams[key]!))")
+                    
+                case .settings(let params):
+                    Text("Settings View")
+                        .font(.title)
+                    Text("ID: \(params.id)")
+                    
+                case .detail(let params):
+                    Text("Detail View")
+                        .font(.title)
+                    Text("ID: \(params.id)")
+                    
+                case .edit_note(let note):
+                    Text("Edit Note")
+                        .font(.title)
+                    if let note = note {
+                        Text("Editing: \(note.name)")
+                        Text("ID: \(note.id.uuidString)")
+                    } else {
+                        Text("Creating New Note")
                     }
                 }
+                
+                Spacer()
             }
-            .navigationTitle("Detail")
+            .padding()
+            .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -285,12 +288,12 @@ struct ClickView: View {
         }
     }
     
-    private func extractParams(from type: ClickType) -> ClickParams? {
+    private var navigationTitle: String {
         switch type {
-        case .profile(let params): return params
-        case .settings(let params): return params
-        case .detail(let params): return params
-        case .edit_note(let params): return nil
+        case .profile: return "Profile"
+        case .settings: return "Settings"
+        case .detail: return "Detail"
+        case .edit_note(let note): return note != nil ? "Edit Note" : "New Note"
         }
     }
 }

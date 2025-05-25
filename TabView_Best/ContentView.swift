@@ -35,12 +35,6 @@ struct SheetParams {
     }
 }
 
-// 显示方式枚举
-enum PresentationStyle {
-    case sheet
-    case fullScreen
-}
-
 // MARK: - SheetType
 enum SheetType: Identifiable, Equatable {
     case profile(SheetParams)
