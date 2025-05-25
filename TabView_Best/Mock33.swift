@@ -24,11 +24,17 @@ struct C_Task: Identifiable {
     var timeStamp: Date
 }
 
-struct Page_Data: Identifiable {
-    var id: UUID = UUID()
-
-    var notes: [C_Note]
-    var tasks: [C_Task]
+// MARK: - 修改 Page_Data 为 ObservableObject
+class Page_Data: ObservableObject, Identifiable {
+    let id: UUID = UUID()
+    
+    @Published var notes: [C_Note]
+    @Published var tasks: [C_Task]
+    
+    init(notes: [C_Note], tasks: [C_Task]) {
+        self.notes = notes
+        self.tasks = tasks
+    }
 }
 
 enum PageType: String, CaseIterable {
@@ -54,34 +60,10 @@ class Mock33_VM: ObservableObject {
     }
 }
 
-// MARK: - 包装器视图，使用 Equatable
-struct MockPageContainer: View, Equatable {
-    let tab: C_Tab
-    let page_data: Page_Data?
-    let onClickToFirst: () -> ()
-    let onShowSheet: (ClickType) -> Void
-    
-    static func == (lhs: MockPageContainer, rhs: MockPageContainer) -> Bool {
-        lhs.tab == rhs.tab && lhs.page_data?.id == rhs.page_data?.id
-    }
-    
-    var body: some View {
-#if DEBUG
-let _ = Self._printChanges()
-#endif
-        return MockPage(
-            tab: tab,
-            page_data: page_data,
-            onClickToFirst: onClickToFirst,
-            onClick: onShowSheet
-        )
-    }
-}
-
 struct Mock33: View {
     @StateObject var vm = Mock33_VM()
     @State private var selectTabId: String = ""
-    @State private var activeSheet: ClickType? // 直接使用 @State
+    @State private var activeSheet: ClickType?
 
     var body: some View {
 #if DEBUG
@@ -89,18 +71,25 @@ let _ = Self._printChanges()
 #endif
         return TabView(selection: $selectTabId) {
             ForEach(vm.pages) { page in
-                MockPageContainer(
-                    tab: page,
-                    page_data: vm.page_data_dic[page.id],
-                    onClickToFirst: {
-                        selectTabId = vm.pages.first?.id ?? ""
-                    },
-                    onShowSheet: { clickType in
-                        handleClick(clickType, for: page)
-                    }
-                )
-                .equatable() // 关键：使用 equatable 修饰符
-                .tag(page.id)
+                if let page_data = vm.page_data_dic[page.id] {
+                    MockPage(
+                        tab: page,
+                        page_data: page_data,
+                        onClickToFirst: {
+                            withAnimation {
+                                selectTabId = vm.pages.first?.id ?? ""
+                            }
+                        },
+                        onClick: { clickType in
+                            handleClick(clickType, for: page)
+                        }
+                    )
+                    .equatable() // 关键：使用 equatable 修饰符
+                    .tag(page.id)
+                } else {
+                    Text("No data for \(page.name)")
+                        .tag(page.id)
+                }
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .always))
@@ -136,7 +125,10 @@ let _ = Self._printChanges()
             if let c_Note = c_Note {
                 activeSheet = clickType
             } else {
-                vm.page_data_dic[page.id]?.notes.append(C_Note(name: "New Note"))
+                withAnimation {
+                    // 直接添加到 ObservableObject 中，会自动触发更新
+                    vm.page_data_dic[page.id]?.notes.append(C_Note(name: "New Note"))
+                }
             }
         }
     }
@@ -156,16 +148,17 @@ let _ = Self._printChanges()
     }
 }
 
-// MARK: - 优化 MockPage，使其支持 Equatable
+// MARK: - 修改 MockPage，添加 Equatable 支持
 struct MockPage: View, Equatable {
     var tab: C_Tab
-    var page_data: Page_Data?
+    @ObservedObject var page_data: Page_Data
     
     var onClickToFirst: () -> ()
     let onClick: (ClickType) -> Void
     
+    // 实现 Equatable，只比较 tab，让 page_data 的变化能触发更新
     static func == (lhs: MockPage, rhs: MockPage) -> Bool {
-        lhs.tab == rhs.tab && lhs.page_data?.id == rhs.page_data?.id
+        lhs.tab == rhs.tab
     }
 
     var body: some View{
@@ -181,7 +174,7 @@ let _ = Self._printChanges()
             Text(UUID().uuidString)
             
             Section {
-                ForEach(page_data?.notes ?? []){note in
+                ForEach(page_data.notes){note in
                     Button {
                         onClick(.edit_note(note))
                     } label: {
@@ -196,7 +189,7 @@ let _ = Self._printChanges()
                 }
                 .buttonStyle(.borderedProminent)
             } header: {
-                Text("Page Note: \(page_data?.notes.count ?? 0)")
+                Text("Page Note: \(page_data.notes.count)")
             }
          
             Button {
