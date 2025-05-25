@@ -127,6 +127,17 @@ let _ = Self._printChanges()
     }
 }
 
+struct MockPage_Row: View {
+    var note: C_Note
+    
+    var body: some View{
+        HStack {
+            Text(UUID().uuidString)
+            Text(note.name)
+        }
+    }
+}
+
 struct MockPage: View {
     var tab: C_Tab
     var page_data: Page_Data?
@@ -151,7 +162,7 @@ let _ = Self._printChanges()
                     Button {
                         onClick(.edit_note(note))
                     } label: {
-                        Text(note.name)
+                        MockPage_Row(note: note)
                     }
                 }
                 
@@ -172,10 +183,6 @@ let _ = Self._printChanges()
             }
         }
     }
-}
-
-#Preview {
-    Mock33()
 }
 
 struct ClickParams {
@@ -296,4 +303,8 @@ struct ClickView: View {
         case .edit_note(let note): return note != nil ? "Edit Note" : "New Note"
         }
     }
+}
+
+#Preview {
+    Mock33()
 }
