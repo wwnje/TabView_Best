@@ -66,10 +66,30 @@ class Mock33_VM: ObservableObject {
     }
 }
 
+// 添加 AlertInfo 结构体
+struct AlertInfo: Identifiable, Equatable {
+    let id = UUID()
+    let title: String
+    let message: String
+    let primaryButton: AlertButton
+    let secondaryButton: AlertButton?
+    
+    struct AlertButton: Equatable {
+        let title: String
+        let role: ButtonRole?
+        let action: () -> Void
+        
+        static func == (lhs: AlertButton, rhs: AlertButton) -> Bool {
+            lhs.title == rhs.title && lhs.role == rhs.role
+        }
+    }
+}
+
 struct Mock33: View {
     @StateObject var vm = Mock33_VM()
     @State private var selectTabId: String = ""
     @State private var activeSheet: ClickType?
+    @State private var alertInfo: AlertInfo?  // 添加 alert 状态
 
     var body: some View {
 #if DEBUG
@@ -117,6 +137,17 @@ let _ = Self._printChanges()
         )) { type in
             presentSheet(type)
         }
+        // 添加 alert 修饰符
+        .alert(item: $alertInfo) { info in
+            Alert(
+                title: Text(info.title),
+                message: Text(info.message),
+                primaryButton: .destructive(Text(info.primaryButton.title)) {
+                    info.primaryButton.action()
+                },
+                secondaryButton: .cancel(Text(info.secondaryButton?.title ?? "取消"))
+            )
+        }
     }
     
     private func handleClick(_ clickType: ClickType, for page: C_Tab) {
@@ -133,9 +164,30 @@ let _ = Self._printChanges()
                 }
             }
         case .delete_note(let note):
-            if let index = vm.page_data_dic[page.id]?.notes.firstIndex(where: {$0 == note}){
-                vm.page_data_dic[page.id]?.notes.remove(at: index)
-            }
+            // 显示删除确认 alert
+            alertInfo = AlertInfo(
+                title: "确认删除",
+                message: "确定要删除笔记 \"\(note.name)\" 吗？此操作不可撤销。",
+                primaryButton: AlertInfo.AlertButton(
+                    title: "删除",
+                    role: .destructive,
+                    action: {
+                        // 执行删除操作
+                        if let index = vm.page_data_dic[page.id]?.notes.firstIndex(where: {$0 == note}) {
+                            withAnimation {
+                                vm.page_data_dic[page.id]?.notes.remove(at: index)
+                            }
+                        }
+                    }
+                ),
+                secondaryButton: AlertInfo.AlertButton(
+                    title: "取消",
+                    role: .cancel,
+                    action: {}
+                )
+            )
+        case .alert(let info):
+            alertInfo = info
         default:
             activeSheet = clickType
         }
@@ -278,6 +330,7 @@ enum ClickType: Identifiable, Equatable {
     case edit_note(C_Note?)
     case delete_note(C_Note)
     case full_screen
+    case alert(AlertInfo)  // 新增 alert case
     
     var id: String {
         switch self {
@@ -287,6 +340,7 @@ enum ClickType: Identifiable, Equatable {
         case .edit_note(let params): return "edit_note_\(params?.id.uuidString ?? "new")"
         case .delete_note(let params): return "delete_note_\(params.id.uuidString)"
         case .full_screen: return "full_screen"
+        case .alert(let info): return "alert_\(info.id)"
         }
     }
     
@@ -297,6 +351,7 @@ enum ClickType: Identifiable, Equatable {
         case .settings: return .sheet        // sheet方式显示
         case .detail, .edit_note: return .sheet          // sheet方式显示
         case .full_screen: return .fullScreen
+        case .alert: return .sheet  // alert 不需要这个，但保持一致性
         default: return .sheet
         }
     }
