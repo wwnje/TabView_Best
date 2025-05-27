@@ -7,17 +7,23 @@
 
 import SwiftUI
 
-struct C_Tab: Identifiable, Hashable {
+// 添加 PresentationStyle 枚举
+enum PresentationStyle {
+    case sheet
+    case fullScreen
+}
+
+struct C_Tab: Identifiable, Hashable, Equatable {
     var id: String
     var name: String
 }
 
-struct C_Note: Identifiable {
+struct C_Note: Identifiable, Equatable {
     var id: UUID = UUID()
     var name: String
 }
 
-struct C_Task: Identifiable {
+struct C_Task: Identifiable, Equatable {
     var id: UUID = UUID()
     var name: String
     var isComplete: Bool
@@ -115,11 +121,7 @@ let _ = Self._printChanges()
     
     private func handleClick(_ clickType: ClickType, for page: C_Tab) {
         switch clickType {
-        case .profile(let clickParams):
-            activeSheet = clickType
         case .settings(let clickParams):
-            activeSheet = clickType
-        case .detail(let clickParams):
             activeSheet = clickType
         case .edit_note(let c_Note):
             if let c_Note = c_Note {
@@ -130,6 +132,12 @@ let _ = Self._printChanges()
                     vm.page_data_dic[page.id]?.notes.append(C_Note(name: "New Note"))
                 }
             }
+        case .delete_note(let note):
+            if let index = vm.page_data_dic[page.id]?.notes.firstIndex(where: {$0 == note}){
+                vm.page_data_dic[page.id]?.notes.remove(at: index)
+            }
+        default:
+            activeSheet = clickType
         }
     }
     
@@ -144,6 +152,7 @@ let _ = Self._printChanges()
             ClickView(type: type)
         case .edit_note(_):
             ClickView(type: type)
+        default: ClickView(type: type)
         }
     }
 }
@@ -171,14 +180,14 @@ let _ = Self._printChanges()
                     .font(.title)
             }
 
-            Text(UUID().uuidString)
+            Text(String(UUID().uuidString.suffix(3)))
             
             Section {
                 ForEach(page_data.notes){note in
                     Button {
                         onClick(.edit_note(note))
                     } label: {
-                        MockPage_Row(note: note)
+                        MockPage_Row(note: note, onClick: onClick)
                     }
                 }
                 
@@ -197,6 +206,12 @@ let _ = Self._printChanges()
             } label: {
                 Text("back to first")
             }
+            
+            Button {
+                onClick(.full_screen)
+            } label: {
+                Text("full screen")
+            }
         }
     }
 }
@@ -204,8 +219,8 @@ let _ = Self._printChanges()
 // MARK: - 优化 MockPage_Row
 struct MockPage_Row: View, Equatable {
     var note: C_Note
-    @State private var rowUUID = UUID() // 使用 @State 保持 UUID 稳定
-    
+    let onClick: (ClickType) -> Void
+
     static func == (lhs: MockPage_Row, rhs: MockPage_Row) -> Bool {
         lhs.note.id == rhs.note.id && lhs.note.name == rhs.note.name
     }
@@ -215,8 +230,23 @@ struct MockPage_Row: View, Equatable {
 let _ = Self._printChanges()
 #endif
         return HStack {
-            Text(rowUUID.uuidString) // 使用稳定的 UUID
-            Text(note.name)
+            VStack(alignment: .leading) {
+                Text(String(UUID().uuidString.suffix(3)))
+                    .foregroundColor(.primary)
+                Text(note.name)
+            }
+            
+            Spacer()
+            
+            Button {
+                withAnimation {
+                    onClick(.delete_note(note))
+                }
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title)
+                    .foregroundStyle(.red)
+            }
         }
     }
 }
@@ -246,6 +276,8 @@ enum ClickType: Identifiable, Equatable {
     case settings(ClickParams)
     case detail(ClickParams)
     case edit_note(C_Note?)
+    case delete_note(C_Note)
+    case full_screen
     
     var id: String {
         switch self {
@@ -253,6 +285,8 @@ enum ClickType: Identifiable, Equatable {
         case .settings(let params): return "settings_\(params.id)"
         case .detail(let params): return "detail_\(params.id)"
         case .edit_note(let params): return "edit_note_\(params?.id.uuidString ?? "new")"
+        case .delete_note(let params): return "delete_note_\(params.id.uuidString)"
+        case .full_screen: return "full_screen"
         }
     }
     
@@ -262,18 +296,14 @@ enum ClickType: Identifiable, Equatable {
         case .profile: return .fullScreen    // 全屏显示
         case .settings: return .sheet        // sheet方式显示
         case .detail, .edit_note: return .sheet          // sheet方式显示
+        case .full_screen: return .fullScreen
+        default: return .sheet
         }
     }
     
     static func == (lhs: ClickType, rhs: ClickType) -> Bool {
         lhs.id == rhs.id
     }
-}
-
-// 添加 PresentationStyle 枚举
-enum PresentationStyle {
-    case sheet
-    case fullScreen
 }
 
 // MARK: - ClickView
@@ -295,17 +325,14 @@ struct ClickView: View {
                     if let title = params.title {
                         Text("Title: \(title)")
                     }
-                    
                 case .settings(let params):
                     Text("Settings View")
                         .font(.title)
                     Text("ID: \(params.id)")
-                    
                 case .detail(let params):
                     Text("Detail View")
                         .font(.title)
                     Text("ID: \(params.id)")
-                    
                 case .edit_note(let note):
                     Text("Edit Note")
                         .font(.title)
@@ -315,6 +342,9 @@ struct ClickView: View {
                     } else {
                         Text("Creating New Note")
                     }
+                default:
+                    Text(type.id)
+                        .font(.title)
                 }
                 
                 Spacer()
@@ -338,6 +368,7 @@ struct ClickView: View {
         case .settings: return "Settings"
         case .detail: return "Detail"
         case .edit_note(let note): return note != nil ? "Edit Note" : "New Note"
+        default: return "Title"
         }
     }
 }
