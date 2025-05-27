@@ -186,6 +186,30 @@ let _ = Self._printChanges()
                     action: {}
                 )
             )
+        case .delete_all_notes:
+            // 显示删除全部确认 alert
+            let notesCount = vm.page_data_dic[page.id]?.notes.count ?? 0
+            if notesCount > 0 {
+                alertInfo = AlertInfo(
+                    title: "确认删除全部",
+                    message: "确定要删除全部 \(notesCount) 条笔记吗？此操作不可撤销。",
+                    primaryButton: AlertInfo.AlertButton(
+                        title: "删除全部",
+                        role: .destructive,
+                        action: {
+                            // 执行删除全部操作
+                            withAnimation {
+                                vm.page_data_dic[page.id]?.notes.removeAll()
+                            }
+                        }
+                    ),
+                    secondaryButton: AlertInfo.AlertButton(
+                        title: "取消",
+                        role: .cancel,
+                        action: {}
+                    )
+                )
+            }
         case .alert(let info):
             alertInfo = info
         default:
@@ -243,12 +267,27 @@ let _ = Self._printChanges()
                     }
                 }
                 
-                Button {
-                    onClick(.edit_note(nil))
-                } label: {
-                    Text("add note")
+                HStack {
+                    Button {
+                        onClick(.edit_note(nil))
+                    } label: {
+                        Text("add note")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    
+                    Spacer()
+                    
+                    // 添加删除全部按钮
+                    if !page_data.notes.isEmpty {
+                        Button {
+                            onClick(.delete_all_notes)
+                        } label: {
+                            Text("delete all")
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.red)
+                    }
                 }
-                .buttonStyle(.borderedProminent)
             } header: {
                 Text("Page Note: \(page_data.notes.count)")
             }
@@ -329,8 +368,9 @@ enum ClickType: Identifiable, Equatable {
     case detail(ClickParams)
     case edit_note(C_Note?)
     case delete_note(C_Note)
+    case delete_all_notes  // 新增删除全部 case
     case full_screen
-    case alert(AlertInfo)  // 新增 alert case
+    case alert(AlertInfo)
     
     var id: String {
         switch self {
@@ -339,6 +379,7 @@ enum ClickType: Identifiable, Equatable {
         case .detail(let params): return "detail_\(params.id)"
         case .edit_note(let params): return "edit_note_\(params?.id.uuidString ?? "new")"
         case .delete_note(let params): return "delete_note_\(params.id.uuidString)"
+        case .delete_all_notes: return "delete_all_notes"
         case .full_screen: return "full_screen"
         case .alert(let info): return "alert_\(info.id)"
         }
@@ -351,7 +392,7 @@ enum ClickType: Identifiable, Equatable {
         case .settings: return .sheet        // sheet方式显示
         case .detail, .edit_note: return .sheet          // sheet方式显示
         case .full_screen: return .fullScreen
-        case .alert: return .sheet  // alert 不需要这个，但保持一致性
+        case .alert, .delete_all_notes: return .sheet  // alert 不需要这个，但保持一致性
         default: return .sheet
         }
     }
