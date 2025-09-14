@@ -48,7 +48,7 @@ enum PageType: String, CaseIterable {
     case year
 }
 
-class Mock33_VM: ObservableObject {
+class Home_VM: ObservableObject {
     @Published var pages: [C_Tab]
     @Published var page_data_dic: [String: Page_Data]
 
@@ -84,8 +84,8 @@ struct AlertInfo: Identifiable, Equatable {
     }
 }
 
-struct Mock33: View {
-    @StateObject var vm = Mock33_VM()
+struct iOS_Home: View {
+    @StateObject var vm = Home_VM()
     @State private var selectTabId: String = ""
     @State private var activeSheet: ClickType?
     @State private var alertInfo: AlertInfo?  // 添加 alert 状态
@@ -469,5 +469,5 @@ struct ClickView: View {
 }
 
 #Preview {
-    Mock33()
+    iOS_Home()
 }
