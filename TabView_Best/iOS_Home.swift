@@ -83,6 +83,12 @@ class Home_VM: ObservableObject {
         page_data_dic[pageId]?.notes.append(newNote)
         print("add note: \(newNote.id)")
     }
+    
+    func add_task(pageId: String, header_type: Page_Header_Type){
+        let newTask = C_Task(name: "Hello Task: \(String(UUID().uuidString.suffix(3)))", isComplete: true, timeStamp: .init())
+        page_data_dic[pageId]?.task_dic[header_type]?.append(newTask)
+//        print("add note: \(newNote.id)")
+    }
 }
 
 struct AlertInfo: Identifiable, Equatable {
@@ -225,7 +231,19 @@ let _ = Self._printChanges()
             }
         case .alert(let info):
             alertInfo = info
-        default:
+        case .profile(_):
+            activeSheet = clickType
+        case .detail(_):
+            activeSheet = clickType
+        case .edit_task(let header_type, let c_Task):
+            if let _ = c_Task {
+                activeSheet = clickType
+            } else {
+                withAnimation {
+                    vm.add_task(pageId: page.id, header_type: header_type)
+                }
+            }
+        case .full_screen:
             activeSheet = clickType
         }
     }
@@ -278,36 +296,7 @@ let _ = Self._printChanges()
                     NoteSection(page_data: page_data, onClick: onClick)
                 }
                 else{
-                    let tasks = page_data.task_dic[header_type] ?? []
-                    Section {
-                        ForEach(tasks){task in
-                            Button {
-                            } label: {
-                                Text(task.name)
-                            }
-                        }
-                        
-                        HStack {
-                            Button {
-                            } label: {
-                                Text("add task")
-                            }
-                            .buttonStyle(.borderedProminent)
-                            
-                            Spacer()
-                            
-                            if !tasks.isEmpty {
-                                Button {
-                                } label: {
-                                    Text("delete all")
-                                }
-                                .buttonStyle(.bordered)
-                                .tint(.red)
-                            }
-                        }
-                    } header: {
-                        Text("\(header_type): \(tasks.count)")
-                    }
+                    TaskSection(page_data: page_data, header_type: header_type, onClick: onClick)
                 }
             }
         }
@@ -331,7 +320,6 @@ let _ = Self._printChanges()
     }
 }
 
-// 创建一个新的子视图
 struct NoteSection: View, Equatable {
     @ObservedObject var page_data: Page_Data
     let onClick: (ClickType) -> Void
@@ -341,12 +329,15 @@ struct NoteSection: View, Equatable {
     }
     
     var body: some View {
+#if DEBUG
+let _ = Self._printChanges()
+#endif
         Section {
             ForEach(page_data.notes) { note in
                 Button {
                     onClick(.edit_note(note))
                 } label: {
-                    MockPage_Row(note: note, onClick: onClick)
+                    MockPage_Task_Row(note: note, onClick: onClick)
                 }
             }
             
@@ -376,11 +367,59 @@ struct NoteSection: View, Equatable {
     }
 }
 
-struct MockPage_Row: View, Equatable {
+struct TaskSection: View, Equatable {
+    @ObservedObject var page_data: Page_Data
+    let header_type: Page_Header_Type
+    
+    let onClick: (ClickType) -> Void
+    
+    static func == (lhs: TaskSection, rhs: TaskSection) -> Bool {
+        lhs.page_data.task_dic == rhs.page_data.task_dic
+    }
+    
+    var body: some View {
+#if DEBUG
+let _ = Self._printChanges()
+#endif
+        let tasks = page_data.task_dic[header_type] ?? []
+        Section {
+            ForEach(tasks){task in
+                Button {
+                } label: {
+                    Text(task.name)
+                }
+            }
+            
+            HStack {
+                Button {
+                    onClick(.edit_task(header_type, nil))
+                } label: {
+                    Text("add task")
+                }
+                .buttonStyle(.borderedProminent)
+                
+                Spacer()
+                
+                if !tasks.isEmpty {
+                    Button {
+                    } label: {
+                        Text("delete all")
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+                }
+            }
+        } header: {
+            Text("\(header_type): \(tasks.count)")
+        }
+    }
+}
+
+struct MockPage_Task_Row: View, Equatable {
     var note: C_Note
     let onClick: (ClickType) -> Void
 
-    static func == (lhs: MockPage_Row, rhs: MockPage_Row) -> Bool {
+    static func == (lhs: MockPage_Task_Row, rhs: MockPage_Task_Row) -> Bool {
         lhs.note.id == rhs.note.id && lhs.note.name == rhs.note.name
     }
     
@@ -436,6 +475,9 @@ enum ClickType: Identifiable, Equatable {
     case edit_note(C_Note?)
     case delete_note(C_Note)
     case delete_all_notes  // 新增删除全部 case
+    
+    case edit_task(Page_Header_Type, C_Task?)
+
     case full_screen
     case alert(AlertInfo)
     
@@ -447,6 +489,9 @@ enum ClickType: Identifiable, Equatable {
         case .edit_note(let params): return "edit_note_\(params?.id.uuidString ?? "new")"
         case .delete_note(let params): return "delete_note_\(params.id.uuidString)"
         case .delete_all_notes: return "delete_all_notes"
+            
+        case .edit_task(_, let task): return "edit_task_\(task?.id.uuidString ?? "new")"
+
         case .full_screen: return "full_screen"
         case .alert(let info): return "alert_\(info.id)"
         }
