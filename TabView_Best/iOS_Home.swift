@@ -7,6 +7,12 @@
 
 import SwiftUI
 
+enum Page_Header_Type: String, CaseIterable {
+    case task_day
+    case task_week
+    case note_day
+}
+
 enum PresentationStyle {
     case sheet
     case fullScreen
@@ -29,16 +35,17 @@ struct C_Task: Identifiable, Equatable {
     var timeStamp: Date
 }
 
-// MARK: - 修改 Page_Data 为 ObservableObject
 class Page_Data: ObservableObject, Identifiable {
     let id: UUID = UUID()
     
     @Published var notes: [C_Note]
-    @Published var tasks: [C_Task]
-    
-    init(notes: [C_Note], tasks: [C_Task]) {
+    @Published var page_headers: [Page_Header_Type] = []
+    @Published var task_dic: [Page_Header_Type: [C_Task]]
+
+    init(notes: [C_Note], page_headers: [Page_Header_Type], task_dic: [Page_Header_Type : [C_Task]]) {
         self.notes = notes
-        self.tasks = tasks
+        self.page_headers = page_headers
+        self.task_dic = task_dic
     }
 }
 
@@ -55,17 +62,29 @@ class Home_VM: ObservableObject {
     init() {
         var pps: [C_Tab] = []
         var pdatadic: [String: Page_Data] = [:]
+        
+        var headers: [Page_Header_Type] = []
+        for headerType in Page_Header_Type.allCases{
+            headers.append(headerType)
+        }
+        
         for pageType in PageType.allCases{
             pps.append(C_Tab(id: pageType.rawValue, name: pageType.rawValue))
-            pdatadic[pageType.rawValue] = Page_Data(notes: [C_Note(name: "Note Test")], tasks: [C_Task(name: "Hello Task", isComplete: true, timeStamp: .init())])
+            let task_dic: [Page_Header_Type: [C_Task]] = [Page_Header_Type.task_day: [C_Task(name: "Hello Day Task", isComplete: true, timeStamp: .init())], Page_Header_Type.task_week: [C_Task(name: "Hello Week Task", isComplete: true, timeStamp: .init())]]
+            pdatadic[pageType.rawValue] = Page_Data(notes: [C_Note(name: "Note Test")], page_headers: headers, task_dic: task_dic )
         }
  
         self.pages = pps
         self.page_data_dic = pdatadic
     }
+    
+    func add_note(pageId: String){
+        let newNote = C_Note(name: "New Note")
+        page_data_dic[pageId]?.notes.append(newNote)
+        print("add note: \(newNote.id)")
+    }
 }
 
-// 添加 AlertInfo 结构体
 struct AlertInfo: Identifiable, Equatable {
     let id = UUID()
     let title: String
@@ -94,7 +113,7 @@ struct iOS_Home: View {
 #if DEBUG
 let _ = Self._printChanges()
 #endif
-        return TabView(selection: $selectTabId) {
+        TabView(selection: $selectTabId) {
             ForEach(vm.pages) { page in
                 if let page_data = vm.page_data_dic[page.id] {
                     MockPage(
@@ -154,12 +173,11 @@ let _ = Self._printChanges()
         case .settings(let clickParams):
             activeSheet = clickType
         case .edit_note(let c_Note):
-            if let c_Note = c_Note {
+            if let _ = c_Note {
                 activeSheet = clickType
             } else {
                 withAnimation {
-                    // 直接添加到 ObservableObject 中，会自动触发更新
-                    vm.page_data_dic[page.id]?.notes.append(C_Note(name: "New Note"))
+                    vm.add_note(pageId: page.id)
                 }
             }
         case .delete_note(let note):
@@ -171,11 +189,8 @@ let _ = Self._printChanges()
                     title: "删除",
                     role: .destructive,
                     action: {
-                        // 执行删除操作
                         if let index = vm.page_data_dic[page.id]?.notes.firstIndex(where: {$0 == note}) {
-                            withAnimation {
-                                vm.page_data_dic[page.id]?.notes.remove(at: index)
-                            }
+                            withAnimation {vm.page_data_dic[page.id]?.notes.remove(at: index)}
                         }
                     }
                 ),
@@ -186,7 +201,6 @@ let _ = Self._printChanges()
                 )
             )
         case .delete_all_notes:
-            // 显示删除全部确认 alert
             let notesCount = vm.page_data_dic[page.id]?.notes.count ?? 0
             if notesCount > 0 {
                 alertInfo = AlertInfo(
@@ -249,64 +263,104 @@ struct MockPage: View, Equatable {
 #if DEBUG
 let _ = Self._printChanges()
 #endif
-        return List {
+        List {
             Section {
                 Text(tab.name)
-                    .font(.title)
+                    .font(.largeTitle)
             }
 
             Text(String(UUID().uuidString.suffix(3)))
             
-            Section {
-                ForEach(page_data.notes){note in
-                    Button {
-                        onClick(.edit_note(note))
-                    } label: {
-                        MockPage_Row(note: note, onClick: onClick)
+            ForEach(page_data.page_headers, id: \.self) { header_type in
+                if header_type == .note_day{
+                    Section {
+                        ForEach(page_data.notes){note in
+                            Button {
+                                onClick(.edit_note(note))
+                            } label: {
+                                MockPage_Row(note: note, onClick: onClick)
+                            }
+                        }
+                        
+                        HStack {
+                            Button {
+                                onClick(.edit_note(nil))
+                            } label: {
+                                Text("add note")
+                            }
+                            .buttonStyle(.borderedProminent)
+                            
+                            Spacer()
+                            
+                            // 添加删除全部按钮
+                            if !page_data.notes.isEmpty {
+                                Button {
+                                    onClick(.delete_all_notes)
+                                } label: {
+                                    Text("delete all")
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(.red)
+                            }
+                        }
+                    } header: {
+                        Text("Notes: \(page_data.notes.count)")
                     }
+                }
+                else{
+                    let tasks = page_data.task_dic[header_type] ?? []
+                    Section {
+                        ForEach(tasks){task in
+                            Button {
+                            } label: {
+                                Text(task.name)
+                            }
+                        }
+                        
+                        HStack {
+                            Button {
+                            } label: {
+                                Text("add task")
+                            }
+                            .buttonStyle(.borderedProminent)
+                            
+                            Spacer()
+                            
+                            if !tasks.isEmpty {
+                                Button {
+                                } label: {
+                                    Text("delete all")
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(.red)
+                            }
+                        }
+                    } header: {
+                        Text("\(header_type): \(tasks.count)")
+                    }
+                }
+            }
+        }
+        .listStyle(.plain)
+        .overlay(alignment: .bottom) {
+            HStack {
+                Button {
+                    onClickToFirst()
+                } label: {
+                    Text("back to first")
                 }
                 
-                HStack {
-                    Button {
-                        onClick(.edit_note(nil))
-                    } label: {
-                        Text("add note")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    
-                    Spacer()
-                    
-                    // 添加删除全部按钮
-                    if !page_data.notes.isEmpty {
-                        Button {
-                            onClick(.delete_all_notes)
-                        } label: {
-                            Text("delete all")
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.red)
-                    }
+                Button {
+                    onClick(.full_screen)
+                } label: {
+                    Text("full screen")
                 }
-            } header: {
-                Text("Page Note: \(page_data.notes.count)")
             }
-         
-            Button {
-                onClickToFirst()
-            } label: {
-                Text("back to first")
-            }
-            
-            Button {
-                onClick(.full_screen)
-            } label: {
-                Text("full screen")
-            }
+            .buttonStyle(.borderedProminent)
         }
     }
 }
 
-// MARK: - 优化 MockPage_Row
 struct MockPage_Row: View, Equatable {
     var note: C_Note
     let onClick: (ClickType) -> Void
@@ -319,7 +373,7 @@ struct MockPage_Row: View, Equatable {
 #if DEBUG
 let _ = Self._printChanges()
 #endif
-        return HStack {
+        HStack {
             VStack(alignment: .leading) {
                 Text(String(UUID().uuidString.suffix(3)))
                     .foregroundColor(.primary)
@@ -341,7 +395,6 @@ let _ = Self._printChanges()
     }
 }
 
-// MARK: - 其余代码保持不变
 struct ClickParams {
     let id: String
     var title: String?
