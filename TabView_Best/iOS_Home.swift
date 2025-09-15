@@ -136,7 +136,7 @@ let _ = Self._printChanges()
                 }
             }
         }
-        .tabViewStyle(.page(indexDisplayMode: .always))
+        .tabViewStyle(.page(indexDisplayMode: .never))
         .onAppear(perform: {
             // 设置默认选中的 tab
             selectTabId = vm.pages.first?.id ?? ""
@@ -271,75 +271,11 @@ let _ = Self._printChanges()
 
             Text(String(UUID().uuidString.suffix(3)))
             
-            Section {
-                ForEach(page_data.notes){note in
-                    Button {
-                        onClick(.edit_note(note))
-                    } label: {
-                        MockPage_Row(note: note, onClick: onClick)
-                    }
-                }
-                
-                HStack {
-                    Button {
-                        onClick(.edit_note(nil))
-                    } label: {
-                        Text("add note")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    
-                    Spacer()
-                    
-                    // 添加删除全部按钮
-                    if !page_data.notes.isEmpty {
-                        Button {
-                            onClick(.delete_all_notes)
-                        } label: {
-                            Text("delete all")
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.red)
-                    }
-                }
-            } header: {
-                Text("Notes: \(page_data.notes.count)")
-            }
+            NoteSection(page_data: page_data, onClick: onClick)
             
             ForEach(page_data.page_headers, id: \.self) { header_type in
                 if header_type == .note_day{
-                    Section {
-                        ForEach(page_data.notes){note in
-                            Button {
-                                onClick(.edit_note(note))
-                            } label: {
-                                MockPage_Row(note: note, onClick: onClick)
-                            }
-                        }
-                        
-                        HStack {
-                            Button {
-                                onClick(.edit_note(nil))
-                            } label: {
-                                Text("add note")
-                            }
-                            .buttonStyle(.borderedProminent)
-                            
-                            Spacer()
-                            
-                            // 添加删除全部按钮
-                            if !page_data.notes.isEmpty {
-                                Button {
-                                    onClick(.delete_all_notes)
-                                } label: {
-                                    Text("delete all")
-                                }
-                                .buttonStyle(.bordered)
-                                .tint(.red)
-                            }
-                        }
-                    } header: {
-                        Text("Notes: \(page_data.notes.count)")
-                    }
+                    NoteSection(page_data: page_data, onClick: onClick)
                 }
                 else{
                     let tasks = page_data.task_dic[header_type] ?? []
@@ -376,7 +312,7 @@ let _ = Self._printChanges()
             }
         }
         .listStyle(.plain)
-        .overlay(alignment: .bottom) {
+        .overlay(alignment: .top) {
             HStack {
                 Button {
                     onClickToFirst()
@@ -391,6 +327,51 @@ let _ = Self._printChanges()
                 }
             }
             .buttonStyle(.borderedProminent)
+        }
+    }
+}
+
+// 创建一个新的子视图
+struct NoteSection: View, Equatable {
+    @ObservedObject var page_data: Page_Data
+    let onClick: (ClickType) -> Void
+    
+    static func == (lhs: NoteSection, rhs: NoteSection) -> Bool {
+        lhs.page_data.notes == rhs.page_data.notes
+    }
+    
+    var body: some View {
+        Section {
+            ForEach(page_data.notes) { note in
+                Button {
+                    onClick(.edit_note(note))
+                } label: {
+                    MockPage_Row(note: note, onClick: onClick)
+                }
+            }
+            
+            HStack {
+                Button {
+                    onClick(.edit_note(nil))
+                } label: {
+                    Text("add note")
+                }
+                .buttonStyle(.borderedProminent)
+                
+                Spacer()
+                
+                if !page_data.notes.isEmpty {
+                    Button {
+                        onClick(.delete_all_notes)
+                    } label: {
+                        Text("delete all")
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+                }
+            }
+        } header: {
+            Text("Notes: \(page_data.notes.count)")
         }
     }
 }
