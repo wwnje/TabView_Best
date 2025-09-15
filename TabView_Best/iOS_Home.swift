@@ -271,6 +271,40 @@ let _ = Self._printChanges()
 
             Text(String(UUID().uuidString.suffix(3)))
             
+            Section {
+                ForEach(page_data.notes){note in
+                    Button {
+                        onClick(.edit_note(note))
+                    } label: {
+                        MockPage_Row(note: note, onClick: onClick)
+                    }
+                }
+                
+                HStack {
+                    Button {
+                        onClick(.edit_note(nil))
+                    } label: {
+                        Text("add note")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    
+                    Spacer()
+                    
+                    // 添加删除全部按钮
+                    if !page_data.notes.isEmpty {
+                        Button {
+                            onClick(.delete_all_notes)
+                        } label: {
+                            Text("delete all")
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.red)
+                    }
+                }
+            } header: {
+                Text("Notes: \(page_data.notes.count)")
+            }
+            
             ForEach(page_data.page_headers, id: \.self) { header_type in
                 if header_type == .note_day{
                     Section {
