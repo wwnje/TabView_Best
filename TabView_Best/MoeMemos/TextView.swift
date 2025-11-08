@@ -9,6 +9,8 @@ import SwiftUI
 struct TextView: UIViewRepresentable {
     @Binding var text: String
     @Binding var selection: Range<String.Index>?
+    @Binding var isFirstResponder: Bool
+
     let shouldChangeText: ((_ range: Range<String.Index>, _ replacementText: String) -> Bool)?
     
     func makeUIView(context: Context) -> UITextView {
@@ -69,6 +71,7 @@ struct TextView: UIViewRepresentable {
 #Preview {
     @Previewable @State var text = "Hello world"
     @Previewable @State var selection: Range<String.Index>? = nil
-    
-    TextView(text: $text, selection: $selection, shouldChangeText: nil)
+    @Previewable @State var isFirstResponder = true
+
+    TextView(text: $text, selection: $selection, isFirstResponder: $isFirstResponder, shouldChangeText: nil)
 }

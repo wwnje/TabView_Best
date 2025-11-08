@@ -19,14 +19,14 @@ struct Test_MoeMemos: View {
     @State private var text = ""
     @State private var selection: Range<String.Index>? = nil
     
-    @FocusState private var focused: Bool
-    
+//    @FocusState private var focused: Bool
+    @State private var isFocusTitle = true
 
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading) {
                 TextView(text: $text, selection: $selection, shouldChangeText: shouldChangeText(in:replacementText:))
-                    .focused($focused)
+//                    .focused($focused)
                     .overlay(alignment: .topLeading) {
                         if text.isEmpty {
                             Text("input.placeholder")
@@ -39,7 +39,7 @@ struct Test_MoeMemos: View {
             }
             .padding(.bottom, 40)
             .task {
-                focused = true
+                isFocusTitle = false
             }
 
 //                .toolbar {
