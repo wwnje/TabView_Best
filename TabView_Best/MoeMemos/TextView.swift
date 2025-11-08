@@ -39,6 +39,15 @@ struct TextView: UIViewRepresentable {
                 uiView.selectedRange = NSRange()
             }
         }
+        
+        // 控制键盘显示/隐藏
+        DispatchQueue.main.async {
+            if isFirstResponder && !uiView.isFirstResponder {
+                uiView.becomeFirstResponder()
+            } else if !isFirstResponder && uiView.isFirstResponder {
+                uiView.resignFirstResponder()
+            }
+        }
     }
     
     @MainActor
@@ -64,6 +73,20 @@ struct TextView: UIViewRepresentable {
                 return shouldChangeText(textRange, text)
             }
             return true
+        }
+        
+        // 监听成为第一响应者
+        func textViewDidBeginEditing(_ textView: UITextView) {
+            if !parent.isFirstResponder {
+                parent._isFirstResponder.wrappedValue = true
+            }
+        }
+        
+        // 监听失去第一响应者
+        func textViewDidEndEditing(_ textView: UITextView) {
+            if parent.isFirstResponder {
+                parent._isFirstResponder.wrappedValue = false
+            }
         }
     }
 }

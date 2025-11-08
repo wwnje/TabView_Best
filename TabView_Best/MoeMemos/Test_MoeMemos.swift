@@ -25,7 +25,7 @@ struct Test_MoeMemos: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading) {
-                TextView(text: $text, selection: $selection, shouldChangeText: shouldChangeText(in:replacementText:))
+                TextView(text: $text, selection: $selection, isFirstResponder: $isFocusTitle, shouldChangeText: shouldChangeText(in:replacementText:))
 //                    .focused($focused)
                     .overlay(alignment: .topLeading) {
                         if text.isEmpty {
@@ -38,10 +38,6 @@ struct Test_MoeMemos: View {
 //                    MemoInputResourceView(viewModel: viewModel)
             }
             .padding(.bottom, 40)
-            .task {
-                isFocusTitle = false
-            }
-
 //                .toolbar {
 //                    ToolbarItemGroup(placement: .keyboard) {
 //                        Spacer()
@@ -73,7 +69,7 @@ struct Test_MoeMemos: View {
                 }
                 
                 Button {
-                    focused = false
+                    isFocusTitle = false
                 } label: {
                     Image(systemName: "camera")
                 }
