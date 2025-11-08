@@ -13,23 +13,34 @@ let listItemSymbolList = ["- [ ] ", "- [x] ", "- [X] ", "* ", "- "]
  参考 IceCubes，Moemeno
  */
 struct Test_MoeMemos: View {
-    @State private var name = "Taylor Swift"
-    @FocusState var isInputActive: Bool
-    
-    @State private var text = ""
-    @State private var selection: Range<String.Index>? = nil
-    
-//    @FocusState private var focused: Bool
+    @State private var input_title = ""
+    @State private var input_content = ""
+
+    @State private var selection_title: Range<String.Index>? = nil
+    @State private var selection_content: Range<String.Index>? = nil
+
     @State private var isFocusTitle = true
+    @State private var isFocusContent = false
 
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading) {
-                TextView(text: $text, selection: $selection, isFirstResponder: $isFocusTitle, shouldChangeText: shouldChangeText(in:replacementText:))
+                TextView(text: $input_title, selection: $selection_title, isFirstResponder: $isFocusTitle, shouldChangeText: shouldChangeText(in:replacementText:))
 //                    .focused($focused)
                     .overlay(alignment: .topLeading) {
-                        if text.isEmpty {
-                            Text("input.placeholder")
+                        if input_title.isEmpty {
+                            Text("input.title")
+                                .foregroundColor(.secondary)
+                                .padding(EdgeInsets(top: 8, leading: 5, bottom: 8, trailing: 5))
+                        }
+                    }
+                    .padding(.horizontal)
+                
+                TextView(text: $input_content, selection: $selection_content, isFirstResponder: $isFocusContent, shouldChangeText: shouldChangeText(in:replacementText:))
+//                    .focused($focused)
+                    .overlay(alignment: .topLeading) {
+                        if input_content.isEmpty {
+                            Text("input.content")
                                 .foregroundColor(.secondary)
                                 .padding(EdgeInsets(top: 8, leading: 5, bottom: 8, trailing: 5))
                         }
@@ -38,14 +49,6 @@ struct Test_MoeMemos: View {
 //                    MemoInputResourceView(viewModel: viewModel)
             }
             .padding(.bottom, 40)
-//                .toolbar {
-//                    ToolbarItemGroup(placement: .keyboard) {
-//                        Spacer()
-//                        Button("Done") {
-//                            isInputActive = false
-//                        }
-//                    }
-//                }
                 .safeAreaInset(edge: .bottom) {
                     toolbar()
 
@@ -88,7 +91,7 @@ struct Test_MoeMemos: View {
             return true
         }
         
-        let currentText = self.text
+        let currentText = self.input_title
         let contentBefore = currentText[currentText.startIndex..<range.lowerBound]
         let lastLineBreak = contentBefore.lastIndex(of: "\n")
         let nextLineBreak = currentText[range.lowerBound...].firstIndex(of: "\n") ?? currentText.endIndex
@@ -108,8 +111,8 @@ struct Test_MoeMemos: View {
                 break
             }
             
-            self.text = currentText[currentText.startIndex..<range.lowerBound] + "\n" + prefixStr + currentText[range.upperBound..<currentText.endIndex]
-            selection = self.text.index(range.lowerBound, offsetBy: prefixStr.count + 1)..<self.text.index(range.upperBound, offsetBy: prefixStr.count + 1)
+            self.input_title = currentText[currentText.startIndex..<range.lowerBound] + "\n" + prefixStr + currentText[range.upperBound..<currentText.endIndex]
+            selection_title = self.input_title.index(range.lowerBound, offsetBy: prefixStr.count + 1)..<self.input_title.index(range.upperBound, offsetBy: prefixStr.count + 1)
             return false
         }
 

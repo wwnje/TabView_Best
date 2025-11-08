@@ -21,7 +21,7 @@ struct TextView: UIViewRepresentable {
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+        Coordinator(text: $text, selection: $selection, isFirstResponder: $isFirstResponder, shouldChangeText: shouldChangeText)
     }
     
     func updateUIView(_ uiView: UITextView, context: Context) {
@@ -41,10 +41,12 @@ struct TextView: UIViewRepresentable {
         }
         
         // 控制键盘显示/隐藏
-        DispatchQueue.main.async {
-            if isFirstResponder && !uiView.isFirstResponder {
+        if isFirstResponder && !uiView.isFirstResponder {
+            DispatchQueue.main.async {
                 uiView.becomeFirstResponder()
-            } else if !isFirstResponder && uiView.isFirstResponder {
+            }
+        } else if !isFirstResponder && uiView.isFirstResponder {
+            DispatchQueue.main.async {
                 uiView.resignFirstResponder()
             }
         }
@@ -52,40 +54,44 @@ struct TextView: UIViewRepresentable {
     
     @MainActor
     class Coordinator: NSObject, UITextViewDelegate {
-        let parent: TextView
+        @Binding var text: String
+        @Binding var selection: Range<String.Index>?
+        @Binding var isFirstResponder: Bool
         
-        init(_ parent: TextView) {
-            self.parent = parent
+        let shouldChangeText: ((_ range: Range<String.Index>, _ replacementText: String) -> Bool)?
+        
+        init(text: Binding<String>, selection: Binding<Range<String.Index>?>, isFirstResponder: Binding<Bool>, shouldChangeText: ((_ range: Range<String.Index>, _ replacementText: String) -> Bool)?) {
+            _text = text
+            _selection = selection
+            _isFirstResponder = isFirstResponder
+            self.shouldChangeText = shouldChangeText
         }
         
         func textViewDidChange(_ textView: UITextView) {
-            parent._text.wrappedValue = textView.text
-            parent._selection.wrappedValue = Range(textView.selectedRange, in: textView.text)
+            text = textView.text
+            selection = Range(textView.selectedRange, in: textView.text)
         }
         
         func textViewDidChangeSelection(_ textView: UITextView) {
-            parent._text.wrappedValue = textView.text
-            parent._selection.wrappedValue = Range(textView.selectedRange, in: textView.text)
+            selection = Range(textView.selectedRange, in: textView.text)
         }
         
         func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
-            if let shouldChangeText = parent.shouldChangeText, let textRange = Range(range, in: textView.text) {
+            if let shouldChangeText = shouldChangeText, let textRange = Range(range, in: textView.text) {
                 return shouldChangeText(textRange, text)
             }
             return true
         }
         
-        // 监听成为第一响应者
         func textViewDidBeginEditing(_ textView: UITextView) {
-            if !parent.isFirstResponder {
-                parent._isFirstResponder.wrappedValue = true
+            DispatchQueue.main.async {
+                self.isFirstResponder = true
             }
         }
         
-        // 监听失去第一响应者
         func textViewDidEndEditing(_ textView: UITextView) {
-            if parent.isFirstResponder {
-                parent._isFirstResponder.wrappedValue = false
+            DispatchQueue.main.async {
+                self.isFirstResponder = false
             }
         }
     }
