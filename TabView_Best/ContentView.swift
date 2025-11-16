@@ -389,7 +389,6 @@ struct ContentView: View {
             SheetView(type: type)
         case .settings(let params):
             SheetView(type: type)
-
         case .detail(let params):
             SheetView(type: type)
         }
