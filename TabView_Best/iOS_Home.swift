@@ -101,7 +101,7 @@ struct Mock_Page: View, Equatable {
     @ObservedObject var page_data: Page_Data
     
     var onClickToFirst: () -> ()
-    let onClick: (ClickType) -> Void
+    let onClick: (Click_Type) -> Void
     
     // 实现 Equatable，只比较 tab，让 page_data 的变化能触发更新
     static func == (lhs: Mock_Page, rhs: Mock_Page) -> Bool {
@@ -153,7 +153,7 @@ struct Mock_Page: View, Equatable {
 
 struct Page_Note: View, Equatable {
     @ObservedObject var page_data: Page_Data
-    let onClick: (ClickType) -> Void
+    let onClick: (Click_Type) -> Void
     
     static func == (lhs: Page_Note, rhs: Page_Note) -> Bool {
         lhs.page_data.notes == rhs.page_data.notes
@@ -209,7 +209,7 @@ struct Page_Task: View, Equatable {
     @ObservedObject var page_data: Page_Data
     let header_type: Page_Header_Type
     
-    let onClick: (ClickType) -> Void
+    let onClick: (Click_Type) -> Void
     
     static func == (lhs: Page_Task, rhs: Page_Task) -> Bool {
         lhs.page_data.task_dic == rhs.page_data.task_dic
@@ -254,7 +254,7 @@ struct Page_Task: View, Equatable {
 
 struct Page_Note_Row: View, Equatable {
     var note: C_Note
-    let onClick: (ClickType) -> Void
+    let onClick: (Click_Type) -> Void
     
     static func == (lhs: Page_Note_Row, rhs: Page_Note_Row) -> Bool {
         lhs.note.id == rhs.note.id && lhs.note.name == rhs.note.name
@@ -287,7 +287,7 @@ struct Page_Note_Row: View, Equatable {
 
 struct Page_Task_Row: View, Equatable {
     var task: C_Task
-    let onClick: (ClickType) -> Void
+    let onClick: (Click_Type) -> Void
     
     static func == (lhs: Page_Task_Row, rhs: Page_Task_Row) -> Bool {
         lhs.task.id == rhs.task.id && lhs.task.name == rhs.task.name
@@ -337,7 +337,7 @@ struct ClickParams {
     }
 }
 
-enum ClickType: Identifiable, Equatable {
+enum Click_Type: Identifiable, Equatable {
     case profile(ClickParams)
     case settings(ClickParams)
     case detail(ClickParams)
@@ -386,13 +386,13 @@ enum ClickType: Identifiable, Equatable {
         }
     }
     
-    static func == (lhs: ClickType, rhs: ClickType) -> Bool {
+    static func == (lhs: Click_Type, rhs: Click_Type) -> Bool {
         lhs.id == rhs.id
     }
 }
 
 struct ClickView: View {
-    let type: ClickType
+    let type: Click_Type
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -460,7 +460,7 @@ struct ClickView: View {
         }
     }
     
-    private func extractParams(from type: ClickType) -> ClickParams? {
+    private func extractParams(from type: Click_Type) -> ClickParams? {
         switch type {
         case .profile(let params): return params
         case .settings(let params): return params
@@ -487,7 +487,7 @@ struct ClickView: View {
 struct iOS_Home: View {
     @StateObject var vm = Home_VM()
     @State private var selectTabId: String = ""
-    @State private var activeSheet: ClickType?
+    @State private var activeSheet: Click_Type?
     @State private var alertInfo: Alert_Info?  // 添加 alert 状态
     
     var body: some View {
@@ -551,7 +551,7 @@ struct iOS_Home: View {
     }
     
     @ViewBuilder
-    private func presentSheet(_ type: ClickType) -> some View {
+    private func presentSheet(_ type: Click_Type) -> some View {
         switch type {
         case .profile(let params):
             ClickView(type: type)
@@ -567,7 +567,7 @@ struct iOS_Home: View {
 }
 
 extension iOS_Home{
-    private func handleClick(_ clickType: ClickType, for page: C_Tab) {
+    private func handleClick(_ clickType: Click_Type, for page: C_Tab) {
         switch clickType {
         case .settings(let clickParams):
             activeSheet = clickType
