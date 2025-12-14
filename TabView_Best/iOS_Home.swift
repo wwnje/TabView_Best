@@ -170,6 +170,15 @@ struct Page_Note: View, Equatable {
                 } label: {
                     Page_Note_Row(note: note, onClick: onClick)
                 }
+                .contextMenu {
+                    Button {
+                        if let index = page_data.notes.firstIndex(where: {$0 == note}){
+                            page_data.notes[index].name = "Note: \(UUID().uuidString.prefix(3))"
+                        }
+                    } label: {
+                        Text("rename")
+                    }
+                }
             }
             
             HStack {
@@ -182,15 +191,13 @@ struct Page_Note: View, Equatable {
                 
                 Spacer()
                 
-                if !page_data.notes.isEmpty {
-                    Button {
-                        onClick(.delete_all_notes)
-                    } label: {
-                        Text("delete all")
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.red)
+                Button {
+                    onClick(.delete_all_notes)
+                } label: {
+                    Text("delete all")
                 }
+                .buttonStyle(.bordered)
+                .tint(.red)
             }
         } header: {
             Text("Notes: \(page_data.notes.count)")
@@ -230,15 +237,14 @@ struct Page_Task: View, Equatable {
                 .buttonStyle(.borderedProminent)
                 
                 Spacer()
-                
-                if !tasks.isEmpty {
-                    Button {
-                    } label: {
-                        Text("delete all")
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.red)
+                    
+                Button {
+                    onClick(.delete_all_tasks(header_type))
+                } label: {
+                    Text("delete all")
                 }
+                .buttonStyle(.bordered)
+                .tint(.red)
             }
         } header: {
             Text("\(header_type): \(tasks.count)")
@@ -273,7 +279,6 @@ struct Page_Note_Row: View, Equatable {
                 }
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.title)
                     .foregroundStyle(.red)
             }
         }
@@ -307,7 +312,6 @@ struct Page_Task_Row: View, Equatable {
                 }
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.title)
                     .foregroundStyle(.red)
             }
         }
@@ -339,9 +343,11 @@ enum ClickType: Identifiable, Equatable {
     case detail(ClickParams)
     case edit_note(C_Note?)
     case delete_note(C_Note)
-    case delete_all_notes  // 新增删除全部 case
-    case delete_task(C_Task)
+    case delete_all_notes
     
+    case delete_task(C_Task)
+    case delete_all_tasks(Page_Header_Type)
+
     case edit_task(Page_Header_Type, C_Task?)
     
     case full_screen
@@ -363,6 +369,8 @@ enum ClickType: Identifiable, Equatable {
             
         case .full_screen: return "full_screen"
         case .alert(let info): return "alert_\(info.id)"
+        case .delete_all_tasks(let header):
+            return "delete_all_tasks_\(header.rawValue)"
         }
     }
     
@@ -614,28 +622,43 @@ extension iOS_Home{
                 )
             )
         case .delete_all_notes:
-            let notesCount = vm.page_data_dic[page.id]?.notes.count ?? 0
-            if notesCount > 0 {
-                alertInfo = Alert_Info(
-                    title: "确认删除全部",
-                    message: "确定要删除全部 \(notesCount) 条笔记吗？此操作不可撤销。",
-                    primaryButton: Alert_Info.AlertButton(
-                        title: "删除全部",
-                        role: .destructive,
-                        action: {
-                            // 执行删除全部操作
-                            withAnimation {
-                                vm.page_data_dic[page.id]?.notes.removeAll()
-                            }
+            alertInfo = Alert_Info(
+                title: "确认删除全部",
+                message: "确定要删除全部 \(vm.page_data_dic[page.id]?.notes.count ?? 0) 条笔记吗？此操作不可撤销。",
+                primaryButton: Alert_Info.AlertButton(
+                    title: "删除全部",
+                    role: .destructive,
+                    action: {
+                        withAnimation {
+                            vm.page_data_dic[page.id]?.notes.removeAll()
                         }
-                    ),
-                    secondaryButton: Alert_Info.AlertButton(
-                        title: "取消",
-                        role: .cancel,
-                        action: {}
-                    )
+                    }
+                ),
+                secondaryButton: Alert_Info.AlertButton(
+                    title: "取消",
+                    role: .cancel,
+                    action: {}
                 )
-            }
+            )
+        case .delete_all_tasks(let header):
+            alertInfo = Alert_Info(
+                title: "确认删除全部",
+                message: "确定要删除全部 \(vm.page_data_dic[page.id]?.task_dic[header]?.count ?? 0) 条笔记吗？此操作不可撤销。",
+                primaryButton: Alert_Info.AlertButton(
+                    title: "删除全部",
+                    role: .destructive,
+                    action: {
+                        withAnimation {
+                            vm.page_data_dic[page.id]?.task_dic[header]?.removeAll()
+                        }
+                    }
+                ),
+                secondaryButton: Alert_Info.AlertButton(
+                    title: "取消",
+                    role: .cancel,
+                    action: {}
+                )
+            )
         case .alert(let info):
             alertInfo = info
         case .profile(_):
