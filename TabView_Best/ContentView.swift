@@ -239,51 +239,6 @@ struct TabContent: View, Equatable {
     }
 }
 
-// MARK: - SheetView
-struct SheetView: View {
-    let type: SheetType
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-#if DEBUG
-        let _ = Self._printChanges()
-#endif
-        let params = extractParams(from: type)
-        NavigationView {
-            VStack {
-                Text("ID: \(params.id)")
-                if let title = params.title {
-                    Text("Title: \(title)")
-                }
-                if let data = params.data {
-                    Text("Data: \(String(describing: data))")
-                }
-                // 使用extraParams
-                ForEach(Array(params.extraParams.keys), id: \.self) { key in
-                    Text("\(key): \(String(describing: params.extraParams[key]!))")
-                }
-            }
-            .navigationTitle("Detail")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-    
-    private func extractParams(from type: SheetType) -> SheetParams {
-        switch type {
-        case .profile(let params): return params
-        case .settings(let params): return params
-        case .detail(let params): return params
-        }
-    }
-}
-
 // MARK: - TabContainerView
 struct TabContainerView: View, Equatable {
     let tab: TabConfig
@@ -348,12 +303,6 @@ struct ContentView: View {
             title: "Second Tab",
             content: "Second tab content showing optimized updates.",
             icon: "2.circle"
-        ),
-        TabConfig(
-            id: "3",
-            title: "Third Tab",
-            content: "Third tab demonstrating performance benefits.",
-            icon: "3.circle"
         )
     ]
     
@@ -366,32 +315,20 @@ struct ContentView: View {
             tabs: tabs,
             onShowSheet: { sheetManager.showSheet($0) }
         )
-        // sheet展示
-        .sheet(item: Binding(
-            get: { sheetManager.activeSheet?.presentationStyle == .sheet ? sheetManager.activeSheet : nil },
-            set: { sheetManager.activeSheet = $0 }
-        )) { type in
-            presentSheet(type)
-        }
-        // 全屏展示
-        .fullScreenCover(item: Binding(
-            get: { sheetManager.activeSheet?.presentationStyle == .fullScreen ? sheetManager.activeSheet : nil },
-            set: { sheetManager.activeSheet = $0 }
-        )) { type in
-            presentSheet(type)
-        }
-    }
-    
-    @ViewBuilder
-    private func presentSheet(_ type: SheetType) -> some View {
-        switch type {
-        case .profile(let params):
-            SheetView(type: type)
-        case .settings(let params):
-            SheetView(type: type)
-        case .detail(let params):
-            SheetView(type: type)
-        }
+//        // sheet展示
+//        .sheet(item: Binding(
+//            get: { sheetManager.activeSheet?.presentationStyle == .sheet ? sheetManager.activeSheet : nil },
+//            set: { sheetManager.activeSheet = $0 }
+//        )) { type in
+//            presentSheet(type)
+//        }
+//        // 全屏展示
+//        .fullScreenCover(item: Binding(
+//            get: { sheetManager.activeSheet?.presentationStyle == .fullScreen ? sheetManager.activeSheet : nil },
+//            set: { sheetManager.activeSheet = $0 }
+//        )) { type in
+//            presentSheet(type)
+//        }
     }
 }
 
