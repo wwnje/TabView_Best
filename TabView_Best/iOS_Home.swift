@@ -318,79 +318,6 @@ struct Page_Task_Row: View, Equatable {
     }
 }
 
-struct ClickParams {
-    let id: String
-    var title: String?
-    var data: Any?
-    var extraParams: [String: Any]
-    
-    init(
-        id: String,
-        title: String? = nil,
-        data: Any? = nil,
-        extraParams: [String: Any] = [:]
-    ) {
-        self.id = id
-        self.title = title
-        self.data = data
-        self.extraParams = extraParams
-    }
-}
-
-enum Click_Type: Identifiable, Equatable {
-    case profile(ClickParams)
-    case settings(ClickParams)
-    case detail(ClickParams)
-    case edit_note(C_Note?)
-    case delete_note(C_Note)
-    case delete_all_notes
-    
-    case delete_task(C_Task)
-    case delete_all_tasks(Page_Header_Type)
-
-    case edit_task(Page_Header_Type, C_Task?)
-    
-    case full_screen
-    case alert(Alert_Info)
-    
-    var id: String {
-        switch self {
-        case .profile(let params): return "profile_\(params.id)"
-        case .settings(let params): return "settings_\(params.id)"
-        case .detail(let params): return "detail_\(params.id)"
-            
-        case .edit_note(let params): return "edit_note_\(params?.id.uuidString ?? "new")"
-        case .delete_note(let params): return "delete_note_\(params.id.uuidString)"
-            
-        case .delete_all_notes: return "delete_all_notes"
-            
-        case .edit_task(_, let task): return "edit_task_\(task?.id.uuidString ?? "new")"
-        case .delete_task(let params): return "delete_task_\(params.id.uuidString)"
-            
-        case .full_screen: return "full_screen"
-        case .alert(let info): return "alert_\(info.id)"
-        case .delete_all_tasks(let header):
-            return "delete_all_tasks_\(header.rawValue)"
-        }
-    }
-    
-    // 添加显示方式属性
-    var presentationStyle: PresentationStyle {
-        switch self {
-        case .profile: return .fullScreen    // 全屏显示
-        case .settings: return .sheet        // sheet方式显示
-        case .detail, .edit_note: return .sheet          // sheet方式显示
-        case .full_screen: return .fullScreen
-        case .alert, .delete_all_notes: return .sheet  // alert 不需要这个，但保持一致性
-        default: return .sheet
-        }
-    }
-    
-    static func == (lhs: Click_Type, rhs: Click_Type) -> Bool {
-        lhs.id == rhs.id
-    }
-}
-
 struct ClickView: View {
     let type: Click_Type
     @Environment(\.dismiss) private var dismiss
@@ -694,5 +621,78 @@ struct Alert_Info: Identifiable, Equatable {
         static func == (lhs: AlertButton, rhs: AlertButton) -> Bool {
             lhs.title == rhs.title && lhs.role == rhs.role
         }
+    }
+}
+
+struct ClickParams {
+    let id: String
+    var title: String?
+    var data: Any?
+    var extraParams: [String: Any]
+    
+    init(
+        id: String,
+        title: String? = nil,
+        data: Any? = nil,
+        extraParams: [String: Any] = [:]
+    ) {
+        self.id = id
+        self.title = title
+        self.data = data
+        self.extraParams = extraParams
+    }
+}
+
+enum Click_Type: Identifiable, Equatable {
+    case profile(ClickParams)
+    case settings(ClickParams)
+    case detail(ClickParams)
+    case edit_note(C_Note?)
+    case delete_note(C_Note)
+    case delete_all_notes
+    
+    case delete_task(C_Task)
+    case delete_all_tasks(Page_Header_Type)
+
+    case edit_task(Page_Header_Type, C_Task?)
+    
+    case full_screen
+    case alert(Alert_Info)
+    
+    var id: String {
+        switch self {
+        case .profile(let params): return "profile_\(params.id)"
+        case .settings(let params): return "settings_\(params.id)"
+        case .detail(let params): return "detail_\(params.id)"
+            
+        case .edit_note(let params): return "edit_note_\(params?.id.uuidString ?? "new")"
+        case .delete_note(let params): return "delete_note_\(params.id.uuidString)"
+            
+        case .delete_all_notes: return "delete_all_notes"
+            
+        case .edit_task(_, let task): return "edit_task_\(task?.id.uuidString ?? "new")"
+        case .delete_task(let params): return "delete_task_\(params.id.uuidString)"
+            
+        case .full_screen: return "full_screen"
+        case .alert(let info): return "alert_\(info.id)"
+        case .delete_all_tasks(let header):
+            return "delete_all_tasks_\(header.rawValue)"
+        }
+    }
+    
+    // 添加显示方式属性
+    var presentationStyle: PresentationStyle {
+        switch self {
+        case .profile: return .fullScreen    // 全屏显示
+        case .settings: return .sheet        // sheet方式显示
+        case .detail, .edit_note: return .sheet          // sheet方式显示
+        case .full_screen: return .fullScreen
+        case .alert, .delete_all_notes: return .sheet  // alert 不需要这个，但保持一致性
+        default: return .sheet
+        }
+    }
+    
+    static func == (lhs: Click_Type, rhs: Click_Type) -> Bool {
+        lhs.id == rhs.id
     }
 }
