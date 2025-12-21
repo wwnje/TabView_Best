@@ -120,14 +120,14 @@ struct Home_Page: View, Equatable {
             
             Text("Page ID: \(String(UUID().uuidString.suffix(3)))")
             
-            Page_Note(page_data: page_data, onClick: onClick)
+            Block_Note(page_data: page_data, onClick: onClick)
             
             ForEach(page_data.page_headers, id: \.self) { header_type in
                 if header_type == .note_day{
-                    Page_Note(page_data: page_data, onClick: onClick)
+                    Block_Note(page_data: page_data, onClick: onClick)
                 }
                 else{
-                    Page_Task(page_data: page_data, header_type: header_type, onClick: onClick)
+                    Block_Task(page_data: page_data, header_type: header_type, onClick: onClick)
                 }
             }
         }
@@ -151,11 +151,11 @@ struct Home_Page: View, Equatable {
     }
 }
 
-struct Page_Note: View, Equatable {
+struct Block_Note: View, Equatable {
     @ObservedObject var page_data: Page_Data
     let onClick: (Click_Type) -> Void
     
-    static func == (lhs: Page_Note, rhs: Page_Note) -> Bool {
+    static func == (lhs: Block_Note, rhs: Block_Note) -> Bool {
         lhs.page_data.notes == rhs.page_data.notes
     }
     
@@ -208,13 +208,13 @@ struct Page_Note: View, Equatable {
     }
 }
 
-struct Page_Task: View, Equatable {
+struct Block_Task: View, Equatable {
     @ObservedObject var page_data: Page_Data
     let header_type: Page_Header_Type
     
     let onClick: (Click_Type) -> Void
     
-    static func == (lhs: Page_Task, rhs: Page_Task) -> Bool {
+    static func == (lhs: Block_Task, rhs: Block_Task) -> Bool {
         lhs.page_data.task_dic == rhs.page_data.task_dic
     }
     
