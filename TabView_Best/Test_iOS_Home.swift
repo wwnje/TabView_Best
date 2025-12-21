@@ -13,7 +13,7 @@ enum Page_Header_Type: String, CaseIterable {
     case note_day
 }
 
-enum PresentationStyle {
+enum Test_PresentationStyle {
     case sheet
     case fullScreen
 }
@@ -23,7 +23,7 @@ struct C_Tab: Identifiable, Hashable, Equatable {
     var name: String
 }
 
-struct C_Note: Identifiable, Equatable {
+struct C_Book: Identifiable, Equatable {
     var id: UUID = UUID()
     var name: String
 }
@@ -36,14 +36,14 @@ struct C_Task: Identifiable, Equatable {
     var timeStamp: Date
 }
 
-class Page_Data: ObservableObject, Identifiable {
+class Test_Page_Data: ObservableObject, Identifiable {
     let id: UUID = UUID()
     
-    @Published var notes: [C_Note]
+    @Published var notes: [C_Book]
     @Published var page_headers: [Page_Header_Type] = []
     @Published var task_dic: [Page_Header_Type: [C_Task]]
     
-    init(notes: [C_Note], page_headers: [Page_Header_Type], task_dic: [Page_Header_Type : [C_Task]]) {
+    init(notes: [C_Book], page_headers: [Page_Header_Type], task_dic: [Page_Header_Type : [C_Task]]) {
         self.notes = notes
         self.page_headers = page_headers
         self.task_dic = task_dic
@@ -54,15 +54,17 @@ enum PageType: String, CaseIterable {
     case today
     case week
     case year
+    case life
+    case box
 }
 
-class Home_VM: ObservableObject {
+class Test_Home_VM: ObservableObject {
     @Published var pages: [C_Tab]
-    @Published var page_data_dic: [String: Page_Data]
+    @Published var page_data_dic: [String: Test_Page_Data]
     
     init() {
         var pps: [C_Tab] = []
-        var pdatadic: [String: Page_Data] = [:]
+        var pdatadic: [String: Test_Page_Data] = [:]
         
         var headers: [Page_Header_Type] = []
         for headerType in Page_Header_Type.allCases{
@@ -76,7 +78,7 @@ class Home_VM: ObservableObject {
                     [C_Task(task_type: Page_Header_Type.task_day.rawValue, name: "Hello Day Task", isComplete: true, timeStamp: .init())],
                 Page_Header_Type.task_week:
                     [C_Task(task_type: Page_Header_Type.task_week.rawValue, name: "Hello Week Task", isComplete: true, timeStamp: .init())]]
-            pdatadic[pageType.rawValue] = Page_Data(notes: [C_Note(name: "Note Test")], page_headers: headers, task_dic: task_dic )
+            pdatadic[pageType.rawValue] = Test_Page_Data(notes: [C_Book(name: "Note Test")], page_headers: headers, task_dic: task_dic )
         }
         
         self.pages = pps
@@ -84,7 +86,7 @@ class Home_VM: ObservableObject {
     }
     
     func add_note(pageId: String){
-        let newNote = C_Note(name: "New Note")
+        let newNote = C_Book(name: "New Note")
         page_data_dic[pageId]?.notes.append(newNote)
         print("add note: \(newNote.id)")
     }
@@ -96,15 +98,15 @@ class Home_VM: ObservableObject {
 }
 
 // MARK: - 修改 MockPage，添加 Equatable 支持
-struct Home_Page: View, Equatable {
+struct Test_Home_Page: View, Equatable {
     var tab: C_Tab
-    @ObservedObject var page_data: Page_Data
+    @ObservedObject var page_data: Test_Page_Data
     
     var onClickToFirst: () -> ()
-    let onClick: (Click_Type) -> Void
+    let onClick: (Test_Click_Type) -> Void
     
     // 实现 Equatable，只比较 tab，让 page_data 的变化能触发更新
-    static func == (lhs: Home_Page, rhs: Home_Page) -> Bool {
+    static func == (lhs: Test_Home_Page, rhs: Test_Home_Page) -> Bool {
         lhs.tab == rhs.tab
     }
     
@@ -152,8 +154,8 @@ struct Home_Page: View, Equatable {
 }
 
 struct Block_Note: View, Equatable {
-    @ObservedObject var page_data: Page_Data
-    let onClick: (Click_Type) -> Void
+    @ObservedObject var page_data: Test_Page_Data
+    let onClick: (Test_Click_Type) -> Void
     
     static func == (lhs: Block_Note, rhs: Block_Note) -> Bool {
         lhs.page_data.notes == rhs.page_data.notes
@@ -185,7 +187,7 @@ struct Block_Note: View, Equatable {
                 Button {
 //                    onClick(.edit_note(nil))
                     withAnimation {
-                        page_data.notes.append(C_Note(name: "Test"))
+                        page_data.notes.append(C_Book(name: "Test"))
                     }
                 } label: {
                     Text("add note")
@@ -209,10 +211,10 @@ struct Block_Note: View, Equatable {
 }
 
 struct Block_Task: View, Equatable {
-    @ObservedObject var page_data: Page_Data
+    @ObservedObject var page_data: Test_Page_Data
     let header_type: Page_Header_Type
     
-    let onClick: (Click_Type) -> Void
+    let onClick: (Test_Click_Type) -> Void
     
     static func == (lhs: Block_Task, rhs: Block_Task) -> Bool {
         lhs.page_data.task_dic == rhs.page_data.task_dic
@@ -256,8 +258,8 @@ struct Block_Task: View, Equatable {
 }
 
 struct Page_Note_Row: View, Equatable {
-    var note: C_Note
-    let onClick: (Click_Type) -> Void
+    var note: C_Book
+    let onClick: (Test_Click_Type) -> Void
     
     static func == (lhs: Page_Note_Row, rhs: Page_Note_Row) -> Bool {
         lhs.note.id == rhs.note.id && lhs.note.name == rhs.note.name
@@ -290,7 +292,7 @@ struct Page_Note_Row: View, Equatable {
 
 struct Page_Task_Row: View, Equatable {
     var task: C_Task
-    let onClick: (Click_Type) -> Void
+    let onClick: (Test_Click_Type) -> Void
     
     static func == (lhs: Page_Task_Row, rhs: Page_Task_Row) -> Bool {
         lhs.task.id == rhs.task.id && lhs.task.name == rhs.task.name
@@ -322,7 +324,7 @@ struct Page_Task_Row: View, Equatable {
 }
 
 struct ClickView: View {
-    let type: Click_Type
+    let type: Test_Click_Type
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -390,7 +392,7 @@ struct ClickView: View {
         }
     }
     
-    private func extractParams(from type: Click_Type) -> ClickParams? {
+    private func extractParams(from type: Test_Click_Type) -> ClickParams? {
         switch type {
         case .profile(let params): return params
         case .settings(let params): return params
@@ -410,15 +412,11 @@ struct ClickView: View {
     }
 }
 
-#Preview {
-    iOS_Home()
-}
-
-struct iOS_Home: View {
-    @StateObject var vm = Home_VM()
+struct Test_iOS_Home: View {
+    @StateObject var vm = Test_Home_VM()
     @State private var selectTabId: String = ""
-    @State private var activeSheet: Click_Type?
-    @State private var alertInfo: Alert_Info?  // 添加 alert 状态
+    @State private var activeSheet: Test_Click_Type?
+    @State private var alertInfo: Test_Alert_Info?  // 添加 alert 状态
     
     var body: some View {
         print("🔄 iOS_Home refreshed")
@@ -428,7 +426,7 @@ struct iOS_Home: View {
         return TabView(selection: $selectTabId) {
             ForEach(vm.pages) { page in
                 if let page_data = vm.page_data_dic[page.id] {
-                    Home_Page(
+                    Test_Home_Page(
                         tab: page,
                         page_data: page_data,
                         onClickToFirst: {
@@ -481,7 +479,7 @@ struct iOS_Home: View {
     }
     
     @ViewBuilder
-    private func presentSheet(_ type: Click_Type) -> some View {
+    private func presentSheet(_ type: Test_Click_Type) -> some View {
         switch type {
         case .profile(let params):
             ClickView(type: type)
@@ -496,8 +494,8 @@ struct iOS_Home: View {
     }
 }
 
-extension iOS_Home{
-    private func handleClick(_ clickType: Click_Type, for page: C_Tab) {
+extension Test_iOS_Home{
+    private func handleClick(_ clickType: Test_Click_Type, for page: C_Tab) {
         switch clickType {
         case .settings(let clickParams):
             activeSheet = clickType
@@ -510,10 +508,10 @@ extension iOS_Home{
                 }
             }
         case .delete_note(let note):
-            alertInfo = Alert_Info(
+            alertInfo = Test_Alert_Info(
                 title: "确认删除",
                 message: "确定要删除笔记 \"\(note.name)\" 吗？此操作不可撤销。",
-                primaryButton: Alert_Info.AlertButton(
+                primaryButton: Test_Alert_Info.AlertButton(
                     title: "删除",
                     role: .destructive,
                     action: {
@@ -522,17 +520,17 @@ extension iOS_Home{
                         }
                     }
                 ),
-                secondaryButton: Alert_Info.AlertButton(
+                secondaryButton: Test_Alert_Info.AlertButton(
                     title: "取消",
                     role: .cancel,
                     action: {}
                 )
             )
         case .delete_task(let task):
-            alertInfo = Alert_Info(
+            alertInfo = Test_Alert_Info(
                 title: "确认删除",
                 message: "确定要删除task \"\(task.name)\" 吗？此操作不可撤销。",
-                primaryButton: Alert_Info.AlertButton(
+                primaryButton: Test_Alert_Info.AlertButton(
                     title: "删除",
                     role: .destructive,
                     action: {
@@ -545,17 +543,17 @@ extension iOS_Home{
                         }
                     }
                 ),
-                secondaryButton: Alert_Info.AlertButton(
+                secondaryButton: Test_Alert_Info.AlertButton(
                     title: "取消",
                     role: .cancel,
                     action: {}
                 )
             )
         case .delete_all_notes:
-            alertInfo = Alert_Info(
+            alertInfo = Test_Alert_Info(
                 title: "确认删除全部",
                 message: "确定要删除全部 \(vm.page_data_dic[page.id]?.notes.count ?? 0) 条笔记吗？此操作不可撤销。",
-                primaryButton: Alert_Info.AlertButton(
+                primaryButton: Test_Alert_Info.AlertButton(
                     title: "删除全部",
                     role: .destructive,
                     action: {
@@ -564,17 +562,17 @@ extension iOS_Home{
                         }
                     }
                 ),
-                secondaryButton: Alert_Info.AlertButton(
+                secondaryButton: Test_Alert_Info.AlertButton(
                     title: "取消",
                     role: .cancel,
                     action: {}
                 )
             )
         case .delete_all_tasks(let header):
-            alertInfo = Alert_Info(
+            alertInfo = Test_Alert_Info(
                 title: "确认删除全部",
                 message: "确定要删除全部 \(vm.page_data_dic[page.id]?.task_dic[header]?.count ?? 0) 条笔记吗？此操作不可撤销。",
-                primaryButton: Alert_Info.AlertButton(
+                primaryButton: Test_Alert_Info.AlertButton(
                     title: "删除全部",
                     role: .destructive,
                     action: {
@@ -583,7 +581,7 @@ extension iOS_Home{
                         }
                     }
                 ),
-                secondaryButton: Alert_Info.AlertButton(
+                secondaryButton: Test_Alert_Info.AlertButton(
                     title: "取消",
                     role: .cancel,
                     action: {}
@@ -609,7 +607,7 @@ extension iOS_Home{
     }
 }
 
-struct Alert_Info: Identifiable, Equatable {
+struct Test_Alert_Info: Identifiable, Equatable {
     let id = UUID()
     let title: String
     let message: String
@@ -646,12 +644,12 @@ struct ClickParams {
     }
 }
 
-enum Click_Type: Identifiable, Equatable {
+enum Test_Click_Type: Identifiable, Equatable {
     case profile(ClickParams)
     case settings(ClickParams)
     case detail(ClickParams)
-    case edit_note(C_Note?)
-    case delete_note(C_Note)
+    case edit_note(C_Book?)
+    case delete_note(C_Book)
     case delete_all_notes
     
     case delete_task(C_Task)
@@ -660,7 +658,7 @@ enum Click_Type: Identifiable, Equatable {
     case edit_task(Page_Header_Type, C_Task?)
     
     case full_screen
-    case alert(Alert_Info)
+    case alert(Test_Alert_Info)
     
     var id: String {
         switch self {
@@ -684,7 +682,7 @@ enum Click_Type: Identifiable, Equatable {
     }
     
     // 添加显示方式属性
-    var presentationStyle: PresentationStyle {
+    var presentationStyle: Test_PresentationStyle {
         switch self {
         case .profile: return .fullScreen    // 全屏显示
         case .settings: return .sheet        // sheet方式显示
@@ -695,7 +693,11 @@ enum Click_Type: Identifiable, Equatable {
         }
     }
     
-    static func == (lhs: Click_Type, rhs: Click_Type) -> Bool {
+    static func == (lhs: Test_Click_Type, rhs: Test_Click_Type) -> Bool {
         lhs.id == rhs.id
     }
+}
+
+#Preview {
+    Test_iOS_Home()
 }

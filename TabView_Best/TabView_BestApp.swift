@@ -11,7 +11,7 @@ import SwiftUI
 struct TabView_BestApp: App {
     var body: some Scene {
         WindowGroup {
-            iOS_Home()
+            Test_iOS_Home()
         }
     }
 }

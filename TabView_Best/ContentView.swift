@@ -50,7 +50,7 @@ enum SheetType: Identifiable, Equatable {
     }
     
     // 添加显示方式属性
-    var presentationStyle: PresentationStyle {
+    var presentationStyle: Test_PresentationStyle {
         switch self {
         case .profile: return .fullScreen    // 全屏显示
         case .settings: return .sheet        // sheet方式显示
