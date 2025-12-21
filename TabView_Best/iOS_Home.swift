@@ -96,7 +96,7 @@ class Home_VM: ObservableObject {
 }
 
 // MARK: - 修改 MockPage，添加 Equatable 支持
-struct Mock_Page: View, Equatable {
+struct Home_Page: View, Equatable {
     var tab: C_Tab
     @ObservedObject var page_data: Page_Data
     
@@ -104,7 +104,7 @@ struct Mock_Page: View, Equatable {
     let onClick: (Click_Type) -> Void
     
     // 实现 Equatable，只比较 tab，让 page_data 的变化能触发更新
-    static func == (lhs: Mock_Page, rhs: Mock_Page) -> Bool {
+    static func == (lhs: Home_Page, rhs: Home_Page) -> Bool {
         lhs.tab == rhs.tab
     }
     
@@ -183,7 +183,10 @@ struct Page_Note: View, Equatable {
             
             HStack {
                 Button {
-                    onClick(.edit_note(nil))
+//                    onClick(.edit_note(nil))
+                    withAnimation {
+                        page_data.notes.append(C_Note(name: "Test"))
+                    }
                 } label: {
                     Text("add note")
                 }
@@ -425,7 +428,7 @@ struct iOS_Home: View {
         return TabView(selection: $selectTabId) {
             ForEach(vm.pages) { page in
                 if let page_data = vm.page_data_dic[page.id] {
-                    Mock_Page(
+                    Home_Page(
                         tab: page,
                         page_data: page_data,
                         onClickToFirst: {
