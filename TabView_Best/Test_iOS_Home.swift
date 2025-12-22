@@ -18,7 +18,7 @@ enum Test_PresentationStyle {
     case fullScreen
 }
 
-struct C_Tab: Identifiable, Hashable, Equatable {
+struct App_Page: Identifiable, Hashable, Equatable {
     var id: String
     var name: String
 }
@@ -59,11 +59,11 @@ enum PageType: String, CaseIterable {
 }
 
 class Test_Home_VM: ObservableObject {
-    @Published var pages: [C_Tab]
+    @Published var pages: [App_Page]
     @Published var page_data_dic: [String: Test_Page_Data]
     
     init() {
-        var pps: [C_Tab] = []
+        var pps: [App_Page] = []
         var pdatadic: [String: Test_Page_Data] = [:]
         
         var headers: [Page_Header_Type] = []
@@ -72,7 +72,7 @@ class Test_Home_VM: ObservableObject {
         }
         
         for pageType in PageType.allCases{
-            pps.append(C_Tab(id: pageType.rawValue, name: pageType.rawValue))
+            pps.append(App_Page(id: pageType.rawValue, name: pageType.rawValue))
             let task_dic: [Page_Header_Type: [C_Task]] = [
                 Page_Header_Type.task_day:
                     [C_Task(task_type: Page_Header_Type.task_day.rawValue, name: "Hello Day Task", isComplete: true, timeStamp: .init())],
@@ -99,7 +99,7 @@ class Test_Home_VM: ObservableObject {
 
 // MARK: - 修改 MockPage，添加 Equatable 支持
 struct Test_Home_Page: View, Equatable {
-    var tab: C_Tab
+    var tab: App_Page
     @ObservedObject var page_data: Test_Page_Data
     
     var onClickToFirst: () -> ()
@@ -166,6 +166,8 @@ struct Block_Note: View, Equatable {
         let _ = Self._printChanges()
 #endif
         Section {
+            Text("Block ID: \(String(UUID().uuidString.suffix(3)))")
+
             ForEach(page_data.notes) { note in
                 Button {
                     onClick(.edit_note(note))
@@ -226,6 +228,8 @@ struct Block_Task: View, Equatable {
 #endif
         let tasks = page_data.task_dic[header_type] ?? []
         Section {
+            Text("Block ID: \(String(UUID().uuidString.suffix(3)))")
+
             ForEach(tasks){task in
                 Button {
                 } label: {
@@ -495,7 +499,7 @@ struct Test_iOS_Home: View {
 }
 
 extension Test_iOS_Home{
-    private func handleClick(_ clickType: Test_Click_Type, for page: C_Tab) {
+    private func handleClick(_ clickType: Test_Click_Type, for page: App_Page) {
         switch clickType {
         case .settings(let clickParams):
             activeSheet = clickType
