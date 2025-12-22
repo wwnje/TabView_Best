@@ -125,13 +125,21 @@ struct Test_Home_Page: View, Equatable {
             Block_Note(notes: $page_data.notes, onClick: onClick)
             
             ForEach(page_data.page_headers, id: \.self) { header_type in
-                if header_type == .note_day{
+                if header_type == .note_day {
                     Block_Note(notes: $page_data.notes, onClick: onClick)
-                }
-                else{
-                    Block_Task(page_data: page_data, header_type: header_type, onClick: onClick)
+                } else {
+                    // 使用 Binding 传递特定 header_type 的 tasks
+                    Block_Task(
+                        tasks: Binding(
+                            get: { page_data.task_dic[header_type] ?? [] },
+                            set: { page_data.task_dic[header_type] = $0 }
+                        ),
+                        header_type: header_type,
+                        onClick: onClick
+                    )
                 }
             }
+
         }
         .listStyle(.plain)
         .overlay(alignment: .top) {
@@ -213,33 +221,49 @@ struct Block_Note: View, Equatable {
 }
 
 struct Block_Task: View, Equatable {
-    @ObservedObject var page_data: Test_Page_Data
+    @Binding var tasks: [C_Task]
     let header_type: Page_Header_Type
-    
     let onClick: (Test_Click_Type) -> Void
     
+    // 只比较当前 header_type 对应的 tasks
     static func == (lhs: Block_Task, rhs: Block_Task) -> Bool {
-        lhs.page_data.task_dic == rhs.page_data.task_dic
+        lhs.tasks == rhs.tasks && lhs.header_type == rhs.header_type
     }
     
     var body: some View {
 #if DEBUG
         let _ = Self._printChanges()
 #endif
-        let tasks = page_data.task_dic[header_type] ?? []
         Section {
             Text("Block ID: \(String(UUID().uuidString.suffix(3)))")
 
-            ForEach(tasks){task in
+            ForEach(tasks) { task in
                 Button {
+                    onClick(.edit_task(header_type, task))
                 } label: {
                     Page_Task_Row(task: task, onClick: onClick)
+                }
+                .contextMenu {
+                    Button {
+                        if let index = tasks.firstIndex(where: { $0 == task }) {
+                            tasks[index].name = "Task: \(UUID().uuidString.prefix(3))"
+                        }
+                    } label: {
+                        Text("rename")
+                    }
                 }
             }
             
             HStack {
                 Button {
-                    onClick(.edit_task(header_type, nil))
+                    withAnimation {
+                        tasks.append(C_Task(
+                            task_type: header_type.rawValue,
+                            name: "New Task: \(String(UUID().uuidString.suffix(3)))",
+                            isComplete: false,
+                            timeStamp: .init()
+                        ))
+                    }
                 } label: {
                     Text("add task")
                 }
@@ -256,10 +280,11 @@ struct Block_Task: View, Equatable {
                 .tint(.red)
             }
         } header: {
-            Text("\(header_type): \(tasks.count)")
+            Text("\(header_type.rawValue): \(tasks.count)")
         }
     }
 }
+
 
 struct Page_Note_Row: View, Equatable {
     var note: C_Book
