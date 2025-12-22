@@ -122,11 +122,11 @@ struct Test_Home_Page: View, Equatable {
             
             Text("Page ID: \(String(UUID().uuidString.suffix(3)))")
             
-            Block_Note(page_data: page_data, onClick: onClick)
+            Block_Note(notes: $page_data.notes, onClick: onClick)
             
             ForEach(page_data.page_headers, id: \.self) { header_type in
                 if header_type == .note_day{
-                    Block_Note(page_data: page_data, onClick: onClick)
+                    Block_Note(notes: $page_data.notes, onClick: onClick)
                 }
                 else{
                     Block_Task(page_data: page_data, header_type: header_type, onClick: onClick)
@@ -154,11 +154,11 @@ struct Test_Home_Page: View, Equatable {
 }
 
 struct Block_Note: View, Equatable {
-    @ObservedObject var page_data: Test_Page_Data
+    @Binding var notes: [C_Book]
     let onClick: (Test_Click_Type) -> Void
     
     static func == (lhs: Block_Note, rhs: Block_Note) -> Bool {
-        lhs.page_data.notes == rhs.page_data.notes
+        lhs.notes == rhs.notes
     }
     
     var body: some View {
@@ -168,7 +168,7 @@ struct Block_Note: View, Equatable {
         Section {
             Text("Block ID: \(String(UUID().uuidString.suffix(3)))")
 
-            ForEach(page_data.notes) { note in
+            ForEach(notes) { note in
                 Button {
                     onClick(.edit_note(note))
                 } label: {
@@ -176,8 +176,8 @@ struct Block_Note: View, Equatable {
                 }
                 .contextMenu {
                     Button {
-                        if let index = page_data.notes.firstIndex(where: {$0 == note}){
-                            page_data.notes[index].name = "Note: \(UUID().uuidString.prefix(3))"
+                        if let index = notes.firstIndex(where: {$0 == note}){
+                            notes[index].name = "Note: \(UUID().uuidString.prefix(3))"
                         }
                     } label: {
                         Text("rename")
@@ -189,7 +189,7 @@ struct Block_Note: View, Equatable {
                 Button {
 //                    onClick(.edit_note(nil))
                     withAnimation {
-                        page_data.notes.append(C_Book(name: "Test"))
+                        notes.append(C_Book(name: "Test"))
                     }
                 } label: {
                     Text("add note")
@@ -207,7 +207,7 @@ struct Block_Note: View, Equatable {
                 .tint(.red)
             }
         } header: {
-            Text("Notes: \(page_data.notes.count)")
+            Text("Notes: \(notes.count)")
         }
     }
 }
