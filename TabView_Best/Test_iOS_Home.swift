@@ -1,10 +1,3 @@
-//
-//  Mock33.swift
-//  TabView_Best
-//
-//  Created by kidstyo on 2025/4/21.
-//
-
 import SwiftUI
 
 enum Page_Header_Type: String, CaseIterable {
@@ -33,7 +26,6 @@ struct C_Task: Identifiable, Equatable {
     var task_type: String
     var name: String
     var isComplete: Bool
-    var timeStamp: Date
 }
 
 class Test_Page_Data: ObservableObject, Identifiable {
@@ -75,9 +67,9 @@ class Test_Home_VM: ObservableObject {
             pps.append(App_Page(id: pageType.rawValue, name: pageType.rawValue))
             let task_dic: [Page_Header_Type: [C_Task]] = [
                 Page_Header_Type.task_day:
-                    [C_Task(task_type: Page_Header_Type.task_day.rawValue, name: "Hello Day Task", isComplete: true, timeStamp: .init())],
+                    [C_Task(task_type: Page_Header_Type.task_day.rawValue, name: "Hello Day Task", isComplete: true)],
                 Page_Header_Type.task_week:
-                    [C_Task(task_type: Page_Header_Type.task_week.rawValue, name: "Hello Week Task", isComplete: true, timeStamp: .init())]]
+                    [C_Task(task_type: Page_Header_Type.task_week.rawValue, name: "Hello Week Task", isComplete: true)]]
             pdatadic[pageType.rawValue] = Test_Page_Data(notes: [C_Book(name: "Note Test")], page_headers: headers, task_dic: task_dic )
         }
         
@@ -92,12 +84,11 @@ class Test_Home_VM: ObservableObject {
     }
     
     func add_task(pageId: String, header_type: Page_Header_Type){
-        let newTask = C_Task(task_type: header_type.rawValue, name: "Hello Task: \(String(UUID().uuidString.suffix(3)))", isComplete: true, timeStamp: .init())
+        let newTask = C_Task(task_type: header_type.rawValue, name: "Hello Task: \(String(UUID().uuidString.suffix(3)))", isComplete: true)
         page_data_dic[pageId]?.task_dic[header_type]?.append(newTask)
     }
 }
 
-// MARK: - 修改 MockPage，添加 Equatable 支持
 struct Test_Home_Page: View, Equatable {
     var tab: App_Page
     @ObservedObject var page_data: Test_Page_Data
@@ -260,8 +251,7 @@ struct Block_Task: View, Equatable {
                         tasks.append(C_Task(
                             task_type: header_type.rawValue,
                             name: "New Task: \(String(UUID().uuidString.suffix(3)))",
-                            isComplete: false,
-                            timeStamp: .init()
+                            isComplete: false
                         ))
                     }
                 } label: {
@@ -386,11 +376,7 @@ struct ClickView: View {
                     if let title = params.title {
                         Text("Title: \(title)")
                     }
-                case .settings(let params):
-                    Text("Settings View")
-                        .font(.title)
-                    Text("ID: \(params.id)")
-                case .detail(let params):
+                              case .detail(let params):
                     Text("Detail View")
                         .font(.title)
                     Text("ID: \(params.id)")
@@ -424,7 +410,6 @@ struct ClickView: View {
     private func extractParams(from type: Test_Click_Type) -> ClickParams? {
         switch type {
         case .profile(let params): return params
-        case .settings(let params): return params
         case .detail(let params): return params
         default: return nil
         }
@@ -433,7 +418,6 @@ struct ClickView: View {
     private var navigationTitle: String {
         switch type {
         case .profile: return "Profile"
-        case .settings: return "Settings"
         case .detail: return "Detail"
         case .edit_note(let note): return note != nil ? "Edit Note" : "New Note"
         default: return "Title"
@@ -512,8 +496,6 @@ struct Test_iOS_Home: View {
         switch type {
         case .profile(let params):
             ClickView(type: type)
-        case .settings(let params):
-            ClickView(type: type)
         case .detail(_):
             ClickView(type: type)
         case .edit_note(_):
@@ -526,8 +508,6 @@ struct Test_iOS_Home: View {
 extension Test_iOS_Home{
     private func handleClick(_ clickType: Test_Click_Type, for page: App_Page) {
         switch clickType {
-        case .settings(let clickParams):
-            activeSheet = clickType
         case .edit_note(let c_Note):
             if let _ = c_Note {
                 activeSheet = clickType
@@ -675,7 +655,6 @@ struct ClickParams {
 
 enum Test_Click_Type: Identifiable, Equatable {
     case profile(ClickParams)
-    case settings(ClickParams)
     case detail(ClickParams)
     case edit_note(C_Book?)
     case delete_note(C_Book)
@@ -692,7 +671,6 @@ enum Test_Click_Type: Identifiable, Equatable {
     var id: String {
         switch self {
         case .profile(let params): return "profile_\(params.id)"
-        case .settings(let params): return "settings_\(params.id)"
         case .detail(let params): return "detail_\(params.id)"
             
         case .edit_note(let params): return "edit_note_\(params?.id.uuidString ?? "new")"
@@ -714,7 +692,6 @@ enum Test_Click_Type: Identifiable, Equatable {
     var presentationStyle: Test_PresentationStyle {
         switch self {
         case .profile: return .fullScreen    // 全屏显示
-        case .settings: return .sheet        // sheet方式显示
         case .detail, .edit_note: return .sheet          // sheet方式显示
         case .full_screen: return .fullScreen
         case .alert, .delete_all_notes: return .sheet  // alert 不需要这个，但保持一致性
