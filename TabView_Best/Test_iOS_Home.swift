@@ -1,9 +1,9 @@
 import SwiftUI
 
 enum Page_Header_Type: String, CaseIterable {
+    case note_day
     case task_day
     case task_week
-    case note_day
 }
 
 enum Test_PresentationStyle {
@@ -28,12 +28,13 @@ struct C_Task: Identifiable, Equatable {
     var isComplete: Bool
 }
 
-class Test_Page_Data: ObservableObject, Identifiable {
+@Observable
+class Test_Page_Data: Identifiable {
     let id: UUID = UUID()
     
-    @Published var notes: [C_Book]
-    @Published var page_headers: [Page_Header_Type] = []
-    @Published var task_dic: [Page_Header_Type: [C_Task]]
+    var notes: [C_Book]
+    var page_headers: [Page_Header_Type] = []
+    var task_dic: [Page_Header_Type: [C_Task]]
     
     init(notes: [C_Book], page_headers: [Page_Header_Type], task_dic: [Page_Header_Type : [C_Task]]) {
         self.notes = notes
@@ -50,21 +51,24 @@ enum PageType: String, CaseIterable {
     case box
 }
 
-class Test_Home_VM: ObservableObject {
-    @Published var pages: [App_Page]
-    @Published var page_data_dic: [String: Test_Page_Data]
+@Observable
+class Test_Home_VM {
+    var pages: [App_Page]
+    var page_data_dic: [String: Test_Page_Data]
     
     init() {
         var pps: [App_Page] = []
-        var pdatadic: [String: Test_Page_Data] = [:]
+        for pageType in PageType.allCases{
+            pps.append(App_Page(id: pageType.rawValue, name: pageType.rawValue))
+        }
         
         var headers: [Page_Header_Type] = []
         for headerType in Page_Header_Type.allCases{
             headers.append(headerType)
         }
         
+        var pdatadic: [String: Test_Page_Data] = [:]
         for pageType in PageType.allCases{
-            pps.append(App_Page(id: pageType.rawValue, name: pageType.rawValue))
             let task_dic: [Page_Header_Type: [C_Task]] = [
                 Page_Header_Type.task_day:
                     [C_Task(task_type: Page_Header_Type.task_day.rawValue, name: "Hello Day Task", isComplete: true)],
@@ -91,7 +95,7 @@ class Test_Home_VM: ObservableObject {
 
 struct Test_Home_Page: View, Equatable {
     var tab: App_Page
-    @ObservedObject var page_data: Test_Page_Data
+    var page_data: Test_Page_Data
     
     var onClickToFirst: () -> ()
     let onClick: (Test_Click_Type) -> Void
@@ -113,18 +117,12 @@ struct Test_Home_Page: View, Equatable {
             
             Text("Page ID: \(String(UUID().uuidString.suffix(3)))")
             
-            Block_Note(notes: $page_data.notes, onClick: onClick)
-            
             ForEach(page_data.page_headers, id: \.self) { header_type in
                 if header_type == .note_day {
-                    Block_Note(notes: $page_data.notes, onClick: onClick)
+                    Block_Note(notes: page_data.notes, onClick: onClick)
                 } else {
-                    // 使用 Binding 传递特定 header_type 的 tasks
                     Block_Task(
-                        tasks: Binding(
-                            get: { page_data.task_dic[header_type] ?? [] },
-                            set: { page_data.task_dic[header_type] = $0 }
-                        ),
+                        tasks: page_data.task_dic[header_type] ?? [],
                         header_type: header_type,
                         onClick: onClick
                     )
@@ -153,7 +151,7 @@ struct Test_Home_Page: View, Equatable {
 }
 
 struct Block_Note: View, Equatable {
-    @Binding var notes: [C_Book]
+    var notes: [C_Book]
     let onClick: (Test_Click_Type) -> Void
     
     static func == (lhs: Block_Note, rhs: Block_Note) -> Bool {
@@ -175,9 +173,9 @@ struct Block_Note: View, Equatable {
                 }
                 .contextMenu {
                     Button {
-                        if let index = notes.firstIndex(where: {$0 == note}){
-                            notes[index].name = "Note: \(UUID().uuidString.prefix(3))"
-                        }
+//                        if let index = notes.firstIndex(where: {$0 == note}){
+//                            notes[index].name = "Note: \(UUID().uuidString.prefix(3))"
+//                        }
                     } label: {
                         Text("rename")
                     }
@@ -186,10 +184,7 @@ struct Block_Note: View, Equatable {
             
             HStack {
                 Button {
-//                    onClick(.edit_note(nil))
-                    withAnimation {
-                        notes.append(C_Book(name: "Test"))
-                    }
+                    onClick(.edit_note(nil))
                 } label: {
                     Text("add note")
                 }
@@ -212,7 +207,7 @@ struct Block_Note: View, Equatable {
 }
 
 struct Block_Task: View, Equatable {
-    @Binding var tasks: [C_Task]
+    var tasks: [C_Task]
     let header_type: Page_Header_Type
     let onClick: (Test_Click_Type) -> Void
     
@@ -235,25 +230,19 @@ struct Block_Task: View, Equatable {
                     Page_Task_Row(task: task, onClick: onClick)
                 }
                 .contextMenu {
-                    Button {
-                        if let index = tasks.firstIndex(where: { $0 == task }) {
-                            tasks[index].name = "Task: \(UUID().uuidString.prefix(3))"
-                        }
-                    } label: {
-                        Text("rename")
-                    }
+//                    Button {
+//                        if let index = tasks.firstIndex(where: { $0 == task }) {
+//                            tasks[index].name = "Task: \(UUID().uuidString.prefix(3))"
+//                        }
+//                    } label: {
+//                        Text("rename")
+//                    }
                 }
             }
             
             HStack {
                 Button {
-                    withAnimation {
-                        tasks.append(C_Task(
-                            task_type: header_type.rawValue,
-                            name: "New Task: \(String(UUID().uuidString.suffix(3)))",
-                            isComplete: false
-                        ))
-                    }
+                    onClick(.edit_task(header_type, nil))
                 } label: {
                     Text("add task")
                 }
@@ -362,7 +351,6 @@ struct ClickView: View {
                         Text("Data: \(String(describing: data))")
                     }
                     
-                    // 使用extraParams
                     ForEach(Array(params.extraParams.keys), id: \.self) { key in
                         Text("\(key): \(String(describing: params.extraParams[key]!))")
                     }
@@ -426,7 +414,7 @@ struct ClickView: View {
 }
 
 struct Test_iOS_Home: View {
-    @StateObject var vm = Test_Home_VM()
+    @State var vm = Test_Home_VM()
     @State private var selectTabId: String = ""
     @State private var activeSheet: Test_Click_Type?
     @State private var alertInfo: Test_Alert_Info?  // 添加 alert 状态
