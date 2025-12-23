@@ -13,6 +13,8 @@ enum Test_PresentationStyle {
 
 struct App_Page: Identifiable, Hashable, Equatable {
     var id: String
+    
+    // tab_name
     var name: String
 }
 
@@ -420,7 +422,6 @@ struct Test_iOS_Home: View {
     @State private var alertInfo: Test_Alert_Info?  // 添加 alert 状态
     
     var body: some View {
-        print("🔄 iOS_Home refreshed")
 #if DEBUG
         let _ = Self._printChanges()
 #endif
