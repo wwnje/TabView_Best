@@ -373,7 +373,6 @@ struct ClickView: View {
     
     private func extractParams(from type: Test_Click_Type) -> ClickParams? {
         switch type {
-        case .profile(let params): return params
         case .detail(let params): return params
         default: return nil
         }
@@ -381,7 +380,6 @@ struct ClickView: View {
     
     private var navigationTitle: String {
         switch type {
-        case .profile: return "Profile"
         case .detail: return "Detail"
         case .edit_note(let note): return note != nil ? "Edit Note" : "New Note"
         default: return "Title"
@@ -557,8 +555,6 @@ extension Test_iOS_Home{
             )
         case .alert(let info):
             alertInfo = info
-        case .profile(_):
-            activeSheet = clickType
         case .detail(_):
             activeSheet = clickType
         case .edit_task(let header_type, let c_Task):
