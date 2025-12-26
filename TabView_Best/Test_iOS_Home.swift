@@ -113,11 +113,9 @@ struct Test_Home_Page: View, Equatable {
 #endif
         List {
             Section {
-                Text(tab.name)
+                Text("\(tab.name): \(String(UUID().uuidString.suffix(3)))")
                     .font(.largeTitle)
             }
-            
-            Text("Page ID: \(String(UUID().uuidString.suffix(3)))")
             
             ForEach(page_data.page_headers, id: \.self) { header_type in
                 if header_type == .note_day {
@@ -130,9 +128,8 @@ struct Test_Home_Page: View, Equatable {
                     )
                 }
             }
-
+            
         }
-        .listStyle(.plain)
         .overlay(alignment: .top) {
             HStack {
                 Button {
@@ -166,21 +163,12 @@ struct Block_Note: View, Equatable {
 #endif
         Section {
             Text("Block ID: \(String(UUID().uuidString.suffix(3)))")
-
+            
             ForEach(notes) { note in
                 Button {
                     onClick(.edit_note(note))
                 } label: {
                     Page_Note_Row(note: note, onClick: onClick)
-                }
-                .contextMenu {
-                    Button {
-//                        if let index = notes.firstIndex(where: {$0 == note}){
-//                            notes[index].name = "Note: \(UUID().uuidString.prefix(3))"
-//                        }
-                    } label: {
-                        Text("rename")
-                    }
                 }
             }
             
@@ -224,21 +212,11 @@ struct Block_Task: View, Equatable {
 #endif
         Section {
             Text("Block ID: \(String(UUID().uuidString.suffix(3)))")
-
             ForEach(tasks) { task in
                 Button {
                     onClick(.edit_task(header_type, task))
                 } label: {
                     Page_Task_Row(task: task, onClick: onClick)
-                }
-                .contextMenu {
-//                    Button {
-//                        if let index = tasks.firstIndex(where: { $0 == task }) {
-//                            tasks[index].name = "Task: \(UUID().uuidString.prefix(3))"
-//                        }
-//                    } label: {
-//                        Text("rename")
-//                    }
                 }
             }
             
@@ -251,7 +229,7 @@ struct Block_Task: View, Equatable {
                 .buttonStyle(.borderedProminent)
                 
                 Spacer()
-                    
+                
                 Button {
                     onClick(.delete_all_tasks(header_type))
                 } label: {
@@ -359,17 +337,13 @@ struct ClickView: View {
                 }
                 
                 switch type {
-                case .profile(let params):
-                    Text("Profile View")
+                case .detail(let params):
+                    Text("Detail View")
                         .font(.title)
                     Text("ID: \(params.id)")
                     if let title = params.title {
                         Text("Title: \(title)")
                     }
-                              case .detail(let params):
-                    Text("Detail View")
-                        .font(.title)
-                    Text("ID: \(params.id)")
                 case .edit_note(let note):
                     Text("Edit Note")
                         .font(.title)
@@ -483,8 +457,6 @@ struct Test_iOS_Home: View {
     @ViewBuilder
     private func presentSheet(_ type: Test_Click_Type) -> some View {
         switch type {
-        case .profile(let params):
-            ClickView(type: type)
         case .detail(_):
             ClickView(type: type)
         case .edit_note(_):
@@ -514,7 +486,7 @@ extension Test_iOS_Home{
                     role: .destructive,
                     action: {
                         if let index = vm.page_data_dic[page.id]?.notes.firstIndex(where: {$0 == note}) {
-                            withAnimation {vm.page_data_dic[page.id]?.notes.remove(at: index)}
+                            vm.page_data_dic[page.id]?.notes.remove(at: index)
                         }
                     }
                 ),
@@ -534,9 +506,7 @@ extension Test_iOS_Home{
                     action: {
                         if let header_type = Page_Header_Type(rawValue: task.task_type){
                             if let index = vm.page_data_dic[page.id]?.task_dic[header_type]?.firstIndex(where: {$0 == task}) {
-                                withAnimation {
-                                    vm.page_data_dic[page.id]?.task_dic[header_type]?.remove(at: index)
-                                }
+                                vm.page_data_dic[page.id]?.task_dic[header_type]?.remove(at: index)
                             }
                         }
                     }
@@ -643,7 +613,6 @@ struct ClickParams {
 }
 
 enum Test_Click_Type: Identifiable, Equatable {
-    case profile(ClickParams)
     case detail(ClickParams)
     case edit_note(C_Book?)
     case delete_note(C_Book)
@@ -651,7 +620,7 @@ enum Test_Click_Type: Identifiable, Equatable {
     
     case delete_task(C_Task)
     case delete_all_tasks(Page_Header_Type)
-
+    
     case edit_task(Page_Header_Type, C_Task?)
     
     case full_screen
@@ -659,7 +628,6 @@ enum Test_Click_Type: Identifiable, Equatable {
     
     var id: String {
         switch self {
-        case .profile(let params): return "profile_\(params.id)"
         case .detail(let params): return "detail_\(params.id)"
             
         case .edit_note(let params): return "edit_note_\(params?.id.uuidString ?? "new")"
@@ -677,10 +645,8 @@ enum Test_Click_Type: Identifiable, Equatable {
         }
     }
     
-    // 添加显示方式属性
     var presentationStyle: Test_PresentationStyle {
         switch self {
-        case .profile: return .fullScreen    // 全屏显示
         case .detail, .edit_note: return .sheet          // sheet方式显示
         case .full_screen: return .fullScreen
         case .alert, .delete_all_notes: return .sheet  // alert 不需要这个，但保持一致性
